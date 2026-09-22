@@ -38,6 +38,7 @@
     muted: boolean;
     volume: number;
     isFullscreen: boolean;
+    pipActive?: boolean;
     episodes: EpisodeItem[];
     dubbers: DubberItem[];
     sources: SourceItem[];
@@ -88,6 +89,7 @@
     ontogglePinDub: (dub: DubberItem) => void | Promise<void>;
     onclosePopover: () => void;
     onfullscreen: (opts?: { osd?: boolean }) => void;
+    onpip?: () => void;
     onchangeRate: (r: number) => void;
     onchangeAspect: (a: string) => void;
     onchangeSurround: (mode: SurroundMode) => void;
@@ -187,6 +189,7 @@
       muted={props.muted}
       volume={props.volume}
       isFullscreen={props.isFullscreen}
+      pipActive={props.pipActive === true}
       popoverType={props.popoverType}
       useVideo={props.useVideo}
       gpuAvailable={props.gpuAvailable}
@@ -213,6 +216,7 @@
       onopenSettings={props.onopenSettings}
       onclosePopover={props.onclosePopover}
       onfullscreen={props.onfullscreen}
+      onpip={props.onpip}
       onchangeRate={props.onchangeRate}
       onchangeAspect={props.onchangeAspect}
       onchangeSurround={props.onchangeSurround}

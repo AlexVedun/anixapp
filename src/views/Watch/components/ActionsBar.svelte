@@ -16,6 +16,7 @@
     iconSettings,
     iconMaximize2,
     iconMinimize2,
+    iconPictureInPicture,
   } from '../../../components/icons';
   import { requestPlayerMuteToggle } from '../core/player-mute';
 
@@ -24,6 +25,7 @@
     muted: boolean;
     volume: number;
     isFullscreen: boolean;
+    pipActive?: boolean;
     popoverType: 'series' | 'dubbing' | 'source' | 'settings' | null;
     useVideo: boolean;
     gpuAvailable: boolean;
@@ -50,6 +52,7 @@
     onopenSettings: () => void;
     onclosePopover: () => void;
     onfullscreen: (opts?: { osd?: boolean }) => void;
+    onpip?: () => void;
     onchangeRate: (r: number) => void;
     onchangeAspect: (a: string) => void;
     onchangeSurround: (mode: SurroundMode) => void;
@@ -62,12 +65,12 @@
   }
 
   let {
-    paused, muted, volume, isFullscreen, popoverType, useVideo,
+    paused, muted, volume, isFullscreen, pipActive = false, popoverType, useVideo,
     gpuAvailable, upscaleEnabled, upscaleType, upscaleIntensity, upscaleTargetRes,
     playbackRate, aspectRatio, surroundMode, eqGains, eqLevel, availableQualities, currentQuality,
     speedLocked = false, currentTime, totalTime, seekSeconds,
     ontogglePlay, ontoggleMute, onvolumechange, onchangeAnime4k, onchangeAnime4kTargetRes,
-    onopenSettings, onclosePopover, onfullscreen,
+    onopenSettings, onclosePopover, onfullscreen, onpip,
     onchangeRate, onchangeAspect, onchangeSurround, onchangeEq, onchangeEqLevel, onresetEq, onchangeQuality,
     onseekBack, onseekForward,
   }: Props = $props();
@@ -198,6 +201,23 @@
 
   <div class="watch-page__btns-right">
     <span class="watch-page__time-pill" aria-hidden="false">{currentTime} / {totalTime}</span>
+
+    {#if onpip}
+      <UiV2Tooltip
+        text={pipActive ? 'Вернуть обычное окно' : 'Картинка в картинке'}
+        placement="top"
+        showDelay={80}
+      >
+        <UiV2RoundButton
+          size="md"
+          label={pipActive ? 'Вернуть обычное окно' : 'Картинка в картинке'}
+          class={pipActive ? 'watch-page__pip-btn watch-page__pip-btn--on' : 'watch-page__pip-btn'}
+          onclick={(e) => { e.stopPropagation(); onpip(); }}
+        >
+          {@html iconPictureInPicture(18)}
+        </UiV2RoundButton>
+      </UiV2Tooltip>
+    {/if}
 
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

@@ -1068,6 +1068,123 @@ $p-skip-dark:   #66c94280;
   white-space: nowrap;
 }
 
+.watch-page__pip-btn--on {
+  color: var(--uikit-v2-accent);
+}
+
+.watch-page--pip .watch-page__gui-overlay,
+.watch-page--pip .watch-page__center-play,
+.watch-page--pip .watch-page__bottom-controls,
+.watch-page--pip .watch-page__top-bar {
+  display: none;
+}
+
+.watch-page--pip .watch-page__bottom-controls {
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.watch-page--pip .watch-page__btn-row {
+  gap: 4px;
+}
+
+.watch-page--pip .watch-page__btns-left,
+.watch-page--pip .watch-page__btns-right {
+  gap: 4px;
+}
+
+.watch-page__pip-standby {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 24px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.06), transparent 55%),
+    #0b0b0b;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.watch-page__pip-standby-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.watch-page__pip-standby-title {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 1.35rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+.watch-page__pip-standby-ep {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.watch-page__pip-standby-note {
+  margin: 6px 0 0;
+  max-width: 28rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.watch-page__pip-standby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+@media (max-width: 560px) {
+  .watch-page__top-bar {
+    padding: 10px 10px 0;
+    gap: 8px;
+  }
+
+  .watch-page__title {
+    font-size: 0.95rem;
+  }
+
+  .watch-page__bottom-controls {
+    gap: 6px;
+    padding: 0 10px 10px;
+  }
+
+  .watch-page__time-pill {
+    display: none;
+  }
+
+  .watch-page__btns-left,
+  .watch-page__btns-right {
+    gap: 4px;
+  }
+}
+
+@media (max-height: 280px) {
+  .watch-page__top-bar,
+  .watch-page__center-play,
+  .watch-page__skip-row {
+    display: none;
+  }
+
+  .watch-page__bottom-controls {
+    padding-bottom: 6px;
+  }
+}
+
 // ── Control button base ────────────────────────────────────────────────────────
 
 .watch-page__ctrl-btn {

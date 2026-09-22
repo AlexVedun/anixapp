@@ -93,12 +93,13 @@ import {
   VolumeX,
   Maximize2,
   Minimize2,
+  PictureInPicture2,
   ThumbsDown,
   ThumbsUp,
   X,
 } from 'lucide';
 
-type IconNode = [string, Record<string, string>];
+type IconNode = [string, Record<string, string | number | undefined>][];
 
 function toSvg(icon: IconNode[], size: number, extraAttrs: Record<string, string> = {}): string {
   const base: Record<string, string> = {
@@ -503,6 +504,10 @@ export function iconMaximize2(size = 20): string {
 
 export function iconMinimize2(size = 20): string {
   return toSvg(Minimize2, size);
+}
+
+export function iconPictureInPicture(size = 20): string {
+  return toSvg(PictureInPicture2, size);
 }
 
 /** Часы (время просмотра / сортировка по активности) */

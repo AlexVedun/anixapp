@@ -11,6 +11,7 @@
   import { normalizeSkipMarks, mergeSkipMarks, clampSkipMarksToDuration, skipMarkActive, endingIsAtEpisodeEnd, buildTimelineSausages, type SkipMarkKind, type SkipMarks } from './_skipMarks';
   import { getSkipAutoPref, setSkipAutoPref } from './_skipPrefs';
   import { pathToLocalMediaUrl } from '../../utils/local-media-url';
+  import { episodeHistoryLabel } from '../../utils/episode-display';
   import { rememberVideoCdnFromUrl, syncExtraVideoHostsToMain } from '../../utils/extra-video-hosts';
   import { sortDubbersPinnedFirst, readLastEpisodeTypeUpdateId } from '../../utils/dubber-meta';
   import {
@@ -2309,7 +2310,68 @@
     return registerPlayerMuteToggle(toggleMute);
   });
 
+  let pipActive = $state(false);
+  let pipHidden = $state(false);
+  let pipWasUpscale = $state(false);
+  let pipClosing = $state(false);
+
+  const pipEpisodeLabel = $derived.by(() => {
+    const current = episodes.find((item) => item.position === watchState.ep);
+    return episodeHistoryLabel(current ?? { position: watchState.ep, name: null }, episodes);
+  });
+
+  function syncPlayerWindowTitle() {
+    if (!pipActive) return;
+    const title = (watchState.title || '').trim();
+    const episode = pipEpisodeLabel;
+    const label = title && episode ? `${title} · ${episode}` : (title || 'AnixApp');
+    document.title = label;
+    window.electron?.setPlayerWindowTitle?.({ title, episode });
+  }
+
+  $effect(() => {
+    const _title = watchState.title;
+    const _ep = pipEpisodeLabel;
+    if (!pipActive) return;
+    syncPlayerWindowTitle();
+  });
+
+  function setPipChrome(active: boolean) {
+    pipActive = active;
+    document.body.classList.toggle('player-pip', active);
+    if (!active) pipHidden = false;
+  }
+
+  function restoreAfterPip() {
+    setPipChrome(false);
+    document.title = 'AnixApp — Просмотр';
+    window.electron?.setPlayerWindowTitle?.({ title: '', episode: '' });
+    if (pipWasUpscale && player.upscaleEnabled) void startUpscale();
+    pipWasUpscale = false;
+    showAndSchedule();
+  }
+
+  async function requestVideoPip() {
+    const video = videoEl as (HTMLVideoElement & {
+      requestPictureInPicture?: () => Promise<PictureInPictureWindow>;
+    }) | undefined;
+    if (!video?.requestPictureInPicture || document.pictureInPictureEnabled === false) return false;
+
+    try {
+      await video.requestPictureInPicture();
+      setPipChrome(true);
+      pipHidden = false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function toggleFullscreen(opts?: { osd?: boolean }) {
+    if (pipActive) {
+      void exitPip({ fullscreen: true, osd: opts?.osd });
+      return;
+    }
     void (async () => {
       const next = await (window as any).electron?.togglePlayerFullScreen?.();
       if (typeof next === 'boolean') {
@@ -2336,6 +2398,72 @@
     const pinned = !!next;
     window.dispatchEvent(new CustomEvent('player-always-on-top', { detail: pinned }));
     if (opts?.osd) showOsd(pinned ? 'Поверх всех окон' : 'Окно откреплено');
+  }
+
+  async function enterPip(opts?: { osd?: boolean }) {
+    if (pipActive) return;
+    if (!player.useVideo || !videoEl) {
+      showOsd('PiP доступен только для видео-потока', { warn: true });
+      return;
+    }
+    pipWasUpscale = player.upscaleEnabled && player.upscaleType !== 'off';
+    if (pipWasUpscale) stopUpscale();
+    const opened = await requestVideoPip();
+    if (!opened) {
+      if (pipWasUpscale && player.upscaleEnabled) void startUpscale();
+      pipWasUpscale = false;
+      showOsd('Не удалось открыть картинку в картинке', { warn: true });
+      return;
+    }
+    if (player.isFullscreen) {
+      const left = await window.electron?.togglePlayerFullScreen?.();
+      player.isFullscreen = left === true;
+    }
+    if (opts?.osd) showOsd('Картинка в картинке');
+  }
+
+  async function exitPip(opts?: { fullscreen?: boolean; osd?: boolean }) {
+    if (!pipActive && !opts?.fullscreen) return;
+    pipClosing = true;
+    if (document.pictureInPictureElement === videoEl) {
+      try {
+        await document.exitPictureInPicture();
+      } catch { /* PiP may already be closed by the OS. */ }
+    }
+    pipClosing = false;
+    let fullscreen = !!opts?.fullscreen;
+    if (fullscreen) {
+      const next = await window.electron?.togglePlayerFullScreen?.();
+      fullscreen = next !== false;
+    }
+    restoreAfterPip();
+    player.isFullscreen = fullscreen;
+    if (opts?.osd) showOsd(fullscreen ? 'Полный экран' : 'Обычный режим');
+  }
+
+  function togglePip(opts?: { osd?: boolean }) {
+    if (pipActive) void exitPip({ osd: opts?.osd });
+    else void enterPip({ osd: opts?.osd });
+  }
+
+  async function hidePipWindow() {
+    if (!pipActive || pipHidden) return;
+    pipHidden = true;
+    pipClosing = true;
+    if (document.pictureInPictureElement === videoEl) {
+      try {
+        await document.exitPictureInPicture();
+      } catch {
+        pipHidden = false;
+      }
+    }
+    pipClosing = false;
+  }
+
+  async function showPipWindow() {
+    if (!pipActive || !pipHidden) return;
+    const opened = await requestVideoPip();
+    if (!opened) pipHidden = true;
   }
 
   function applyAnime4kPreset(type: Anime4kType, intensity: Anime4kIntensity) {
@@ -2975,6 +3103,7 @@
     }
     if (e.code === hotkeys.alwaysOnTopCode) {
       e.preventDefault();
+      if (pipActive) return;
       void toggleAlwaysOnTop({ osd: true });
     }
   }
@@ -3436,6 +3565,14 @@
       }
       player.paused = false;
       sendToLobby('play');
+    }, { signal });
+    el.addEventListener('enterpictureinpicture', () => {
+      if (!pipActive) setPipChrome(true);
+      syncPlayerWindowTitle();
+    }, { signal });
+    el.addEventListener('leavepictureinpicture', () => {
+      if (pipClosing || !pipActive) return;
+      restoreAfterPip();
     }, { signal });
     el.addEventListener('pause', () => {
       if (isApplyingSync || localMediaSwap || preventAutoPause || el.seeking) return;
@@ -4137,6 +4274,7 @@
         const d = e.detail as LobbyWaitOverlay;
         lobbyWaitOverlay = d ?? null;
       }) as EventListener],
+
     ];
 
     handlers.forEach(([evt, fn]) => window.addEventListener(evt, fn));
@@ -4201,6 +4339,7 @@
     muted: player.muted,
     volume: player.volume,
     isFullscreen: player.isFullscreen,
+    pipActive,
     episodes,
     dubbers,
     sources: dubberSources,
@@ -4253,6 +4392,7 @@
     ontogglePinDub: togglePinDubber,
     onclosePopover: () => { popoverType = null; },
     onfullscreen: toggleFullscreen,
+    onpip: () => togglePip({ osd: true }),
     onchangeRate: changePlaybackRate,
     onchangeAspect: changeAspectRatio,
     onchangeSurround: (mode) => changeSurroundMode(mode, { osd: true }),
@@ -4282,7 +4422,8 @@
 <div class="view view-watch">
   <div
     class="watch-page watch-page--anidesk {!player.useVideo ? 'watch-page--iframe-mode' : ''}"
-    class:watch-page--chrome-hidden={player.loadState === 'ready' && !player.overlayVisible}
+    class:watch-page--pip={pipActive}
+    class:watch-page--chrome-hidden={player.loadState === 'ready' && !player.overlayVisible && !pipActive}
     class:watch-page--error={player.loadState === 'error'}
     class:watch-page--lobby={inLobby}
     class:watch-page--lobby-sidebar={inLobby && sidebarOpen}
@@ -4317,9 +4458,35 @@
           <canvas
             bind:this={canvasEl}
             class="watch-page__upscale-canvas {player.aspectRatio !== 'auto' ? `watch-page__upscale-canvas--ratio watch-page__upscale-canvas--ratio-${player.aspectRatio.replace('/', '-')}` : ''}"
-            class:watch-page__upscale-canvas--on={player.upscaleCanvasOn && !player.switching}
+            class:watch-page__upscale-canvas--on={player.upscaleCanvasOn && !player.switching && !pipActive}
           ></canvas>
         {/key}
+
+        {#if pipActive}
+          <div class="watch-page__pip-standby" role="status">
+            <p class="watch-page__pip-standby-kicker">Картинка в картинке</p>
+            <p class="watch-page__pip-standby-title">{watchState.title || 'Воспроизведение'}</p>
+            <p class="watch-page__pip-standby-ep">{pipEpisodeLabel} открыта в окне PiP</p>
+            <p class="watch-page__pip-standby-note">Видео сейчас в отдельном окне. Anime4K в режиме PiP не работает и включится снова, когда плеер вернётся сюда.</p>
+            <div class="watch-page__pip-standby-actions">
+              {#if pipHidden}
+                <button type="button" class="watch-page__open-browser" onclick={() => { void showPipWindow(); }}>
+                  Показать окно
+                </button>
+              {:else}
+                <button type="button" class="watch-page__open-browser" onclick={() => { void hidePipWindow(); }}>
+                  Скрыть окно
+                </button>
+              {/if}
+              <button type="button" class="watch-page__open-browser" onclick={() => { void exitPip({ osd: true }); }}>
+                Вернуть сюда
+              </button>
+              <button type="button" class="watch-page__open-browser" onclick={() => { void exitPip({ fullscreen: true, osd: true }); }}>
+                Полный экран
+              </button>
+            </div>
+          </div>
+        {/if}
 
         {#if player.loadState === 'loading' || player.switching}
           <div class="watch-page__poster-layer" aria-hidden="true">

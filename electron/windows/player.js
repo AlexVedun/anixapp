@@ -26,8 +26,8 @@ function createPlayerWindow(params) {
   const playerWindow = new BrowserWindow({
     width: 1280,
     height: 720,
-    minWidth: 640,
-    minHeight: 400,
+    minWidth: 280,
+    minHeight: 158,
     frame: false,
     titleBarStyle: 'hidden',
     title: 'AnixApp — Просмотр',
@@ -597,6 +597,21 @@ ipcMain.handle('player:toggleFullScreen', (event) => {
   win.setFullScreen(next);
   event.sender.send('player:fullscreen', next);
   return next;
+});
+
+function playerWindowTitle(payload) {
+  const title = String(payload?.title ?? '').trim();
+  const episode = String(payload?.episode ?? '').trim();
+  if (title && episode) return `${title} · ${episode}`;
+  return title || 'AnixApp — Просмотр';
+}
+
+ipcMain.on('player:setWindowTitle', (event, payload) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win || win.isDestroyed()) return;
+  const title = playerWindowTitle(payload);
+  win.setTitle(title);
+  if (!win.webContents.isDestroyed()) win.webContents.send('player:windowTitle', title);
 });
 
 ipcMain.handle('player:toggleAlwaysOnTop', (event) => {

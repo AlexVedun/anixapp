@@ -65,6 +65,7 @@ declare global {
       closePlayerWindow: () => void;
       togglePlayerFullScreen: () => Promise<boolean>;
       togglePlayerAlwaysOnTop: () => Promise<boolean>;
+      setPlayerWindowTitle?: (payload: { title?: string; episode?: string }) => void;
       isPlayerOpen: () => Promise<boolean>;
       openExternal: (url: string) => void;
       startTvLanLogin?: () => Promise<{ url: string | null; error?: string }>;

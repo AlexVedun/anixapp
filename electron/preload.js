@@ -4,6 +4,11 @@ ipcRenderer.on('player:fullscreen', (_, isFullscreen) => {
   window.dispatchEvent(new CustomEvent('player-fullscreen', { detail: isFullscreen }));
 });
 
+ipcRenderer.on('player:windowTitle', (_, title) => {
+  const label = typeof title === 'string' && title.trim() ? title.trim() : 'AnixApp';
+  document.title = label;
+});
+
 ipcRenderer.on('player:applySync', (_, playback) => {
   window.dispatchEvent(new CustomEvent('player:applySync', { detail: playback }));
 });
@@ -173,6 +178,7 @@ contextBridge.exposeInMainWorld('electron', {
   closePlayerWindow: () => ipcRenderer.send('player:close'),
   togglePlayerFullScreen: () => ipcRenderer.invoke('player:toggleFullScreen'),
   togglePlayerAlwaysOnTop: () => ipcRenderer.invoke('player:toggleAlwaysOnTop'),
+  setPlayerWindowTitle: (payload) => ipcRenderer.send('player:setWindowTitle', payload),
   isPlayerOpen: () => ipcRenderer.invoke('player:isOpen'),
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   startTvLanLogin: () => ipcRenderer.invoke('tvLan:start'),
