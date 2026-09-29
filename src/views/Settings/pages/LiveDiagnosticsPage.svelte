@@ -82,9 +82,11 @@
   let stats = $state<{ total: number; max: number; byChannel: Record<string, number>; byLevel: Record<string, number> } | null>(null);
   let logPaths = $state<{ dir: string; file: string; zipDefaultDir: string } | null>(null);
   let viewport: HTMLDivElement | null = $state(null);
+  let listRoot: HTMLDivElement | null = $state(null);
   let unsubEntry: (() => void) | null = null;
   let pending: DiagEntry[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  let scrollRaf = 0;
   const seenIds = new Set<string>();
 
   const showResourceBar = $derived(channel === 'all' || channel === 'network');
@@ -115,6 +117,42 @@
     feedback = msg;
     feedbackKind = kind;
   }
+
+  function resolveViewport(): HTMLElement | null {
+    if (viewport) return viewport;
+    return listRoot?.querySelector<HTMLElement>('[data-uiv2-scroll], .uiv2-scroll-area__viewport') ?? null;
+  }
+
+  function scrollToBottomNow() {
+    const el = resolveViewport();
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  async function scrollToBottom() {
+    await tick();
+    scrollToBottomNow();
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
+    scrollRaf = requestAnimationFrame(() => {
+      scrollToBottomNow();
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0;
+        scrollToBottomNow();
+      });
+    });
+  }
+
+  function toggleAutoScroll() {
+    autoScroll = !autoScroll;
+    if (autoScroll) void scrollToBottom();
+  }
+
+  // Keep pinned to bottom while Авто is on (covers filter flips + late DOM paint).
+  $effect(() => {
+    const n = filtered.length;
+    if (!autoScroll || n === 0) return;
+    void scrollToBottom();
+  });
 
   function flushPending() {
     if (flushTimer != null) {
@@ -150,12 +188,6 @@
       flushPending();
       if (autoScroll) void scrollToBottom();
     }, 80);
-  }
-
-  async function scrollToBottom() {
-    await tick();
-    const el = viewport;
-    if (el) el.scrollTop = el.scrollHeight;
   }
 
   async function refreshStats() {
@@ -284,6 +316,7 @@
 
   onDestroy(() => {
     if (flushTimer) clearTimeout(flushTimer);
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
     unsubEntry?.();
     void window.electron?.diagnosticsUnsubscribe?.();
   });
@@ -330,7 +363,8 @@
       class="diag-live__chip diag-live__chip--toggle"
       class:diag-live__chip--on={autoScroll}
       aria-pressed={autoScroll}
-      onclick={() => { autoScroll = !autoScroll; }}
+      title={autoScroll ? 'Автопрокрутка включена' : 'Автопрокрутка выключена'}
+      onclick={toggleAutoScroll}
     >Авто</button>
 
     {#if stats}
@@ -426,7 +460,11 @@
     {/if}
   </p>
 
-  <div class="diag-live__list uiv2-scroll-area uiv2-scroll-area--y" use:uiv2CustomScroll={{ axis: 'y' }}>
+  <div
+    class="diag-live__list uiv2-scroll-area uiv2-scroll-area--y"
+    bind:this={listRoot}
+    use:uiv2CustomScroll={{ axis: 'y' }}
+  >
     <div class="uiv2-scroll-area__viewport" data-uiv2-scroll bind:this={viewport}>
       {#if filtered.length === 0}
         <div class="diag-live__empty">

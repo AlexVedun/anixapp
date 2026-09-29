@@ -259,6 +259,7 @@
   let lastExternalOpts: { title?: string; referer?: string; pageUrl?: string; cookies?: string } | undefined;
   let externalCdnRetryCount = 0;
   let externalCdnRetrying = false;
+  let reconnectUiTimer: ReturnType<typeof setTimeout> | null = null;
   let lastEpisodeTypeUpdateId = $state<number | null>(null);
   let playbackAlt = $state<PlaybackAlt | null>(null);
   let playbackAltGen = 0;
@@ -900,6 +901,10 @@
   /** Снять постер/«Загрузка…» и показать кадр. Плашку ошибки убираем только если серия реально идёт. */
   function revealPlayerMedia() {
     player.switching = false;
+    if (reconnectUiTimer != null) {
+      clearTimeout(reconnectUiTimer);
+      reconnectUiTimer = null;
+    }
     player.reconnecting = false;
     if (player.loadState === 'error') {
       const v = videoEl;
@@ -1598,6 +1603,10 @@
     playbackAlt = null;
     const gen = ++playbackAltGen;
     player.switching = false;
+    if (reconnectUiTimer != null) {
+      clearTimeout(reconnectUiTimer);
+      reconnectUiTimer = null;
+    }
     player.reconnecting = false;
     player.useVideo = false;
     player.playUrl = '';
@@ -1616,10 +1625,28 @@
 
   function setPlayerReconnecting(active: boolean) {
     if (player.loadState === 'error') {
+      if (reconnectUiTimer != null) {
+        clearTimeout(reconnectUiTimer);
+        reconnectUiTimer = null;
+      }
       player.reconnecting = false;
       return;
     }
-    player.reconnecting = active;
+    if (!active) {
+      if (reconnectUiTimer != null) {
+        clearTimeout(reconnectUiTimer);
+        reconnectUiTimer = null;
+      }
+      player.reconnecting = false;
+      return;
+    }
+    // Soft recovery is silent; only show a tiny hint if still reconnecting after a delay.
+    if (player.reconnecting || reconnectUiTimer != null) return;
+    reconnectUiTimer = setTimeout(() => {
+      reconnectUiTimer = null;
+      if (player.loadState === 'error' || player.switching || player.loadState === 'loading') return;
+      player.reconnecting = true;
+    }, 3_500);
   }
 
   function retryCurrentPlayback() {
@@ -4325,6 +4352,7 @@
       if (applySyncTimer)  clearTimeout(applySyncTimer);
       if (idleTimer)       clearTimeout(idleTimer);
       if (osdTimer)        clearTimeout(osdTimer);
+      if (reconnectUiTimer) clearTimeout(reconnectUiTimer);
       if (adaptiveQualityTimer) clearTimeout(adaptiveQualityTimer);
     };
   });
@@ -4591,8 +4619,7 @@
         </div>
       {:else if player.reconnecting && player.loadState !== 'loading' && !player.switching}
         <div class="watch-page__player-reconnect" role="status" aria-live="polite">
-          <p class="watch-page__player-reconnect-title">Переподключение…</p>
-          <p class="watch-page__player-reconnect-hint">Соединение нестабильно — продолжаем с того же места</p>
+          <p class="watch-page__player-reconnect-title">Восстановление…</p>
         </div>
       {/if}
 

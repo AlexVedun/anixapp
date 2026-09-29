@@ -6,7 +6,7 @@ type VideoWithHls = HTMLVideoElement & {
   _hls?: Hls;
   _hlsGen?: number;
   _hlsReady?: () => void;
-  _hlsError?: (event: string, data: { fatal: boolean; type: string }) => void;
+  _hlsError?: (event: string, data: { fatal: boolean; type: string; details?: string }) => void;
   _hlsFragLoaded?: () => void;
   _hlsNetTimers?: ReturnType<typeof setTimeout>[];
 };
@@ -22,7 +22,10 @@ export interface SwapMediaHandlers {
   forceNew?: boolean;
 }
 
-const NET_BACKOFF_MS = [0, 1500, 3000] as const;
+/** Quiet soft kicks — no UI. Escalate only if still stuck after these. */
+const NET_BACKOFF_MS = [0, 800, 1800, 3200] as const;
+const NET_ESCALATE_AFTER_MS = 10_000;
+const MAX_SOFT_NET_ROUNDS = 3;
 
 export function getAttachedHls(video: HTMLVideoElement): Hls | undefined {
   return (video as VideoWithHls)._hls;
@@ -56,6 +59,27 @@ function unbindHlsHandlers(el: VideoWithHls): void {
   el._hlsFragLoaded = undefined;
 }
 
+function hasForwardBuffer(video: HTMLVideoElement, minSec = 1): boolean {
+  try {
+    if (video.buffered.length === 0) return false;
+    const end = video.buffered.end(video.buffered.length - 1);
+    return end - video.currentTime > minSec;
+  } catch {
+    return false;
+  }
+}
+
+function playbackLooksHealthy(video: HTMLVideoElement): boolean {
+  if (video.ended) return true;
+  if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA && hasForwardBuffer(video, 0.75)) {
+    return true;
+  }
+  if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && hasForwardBuffer(video, 0.4)) {
+    return true;
+  }
+  return false;
+}
+
 function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaHandlers): void {
   const el = video as VideoWithHls;
   unbindHlsHandlers(el);
@@ -71,14 +95,13 @@ function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaH
   };
 
   let mediaAttempts = 0;
-  let netAttempts = 0;
+  let softNetRounds = 0;
   let reResolveAttempts = 0;
   let netBackoffActive = false;
 
   const resetSoftCounters = () => {
     mediaAttempts = 0;
-    netAttempts = 0;
-    reResolveAttempts = 0;
+    softNetRounds = 0;
     netBackoffActive = false;
     clearNetBackoffTimers(el);
     handlers.onReconnect?.(false);
@@ -86,16 +109,16 @@ function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaH
 
   const onFragLoaded = () => {
     if (el._hlsGen !== gen) return;
-    // Successful fragment → forget prior soft failures so one drop/hour doesn't stack.
+    // Successful fragment → forget prior soft failures so one drop doesn't stack.
     resetSoftCounters();
   };
 
   const kickStartLoad = (atTime?: number) => {
     try {
-      if (typeof atTime === 'number' && Number.isFinite(atTime) && atTime > 0) {
+      if (typeof atTime === 'number' && Number.isFinite(atTime) && atTime > 0.25) {
         hls.startLoad(atTime);
       } else {
-        hls.startLoad();
+        hls.startLoad(-1);
       }
     } catch { /* ignore */ }
   };
@@ -103,52 +126,66 @@ function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaH
   const scheduleNetworkBackoff = () => {
     if (netBackoffActive) return;
     netBackoffActive = true;
-    handlers.onReconnect?.(true);
+    softNetRounds += 1;
+    // Soft recovery stays silent — last frame stays on screen, no overlay.
     handlers.onFatal?.('recover');
 
     for (const delay of NET_BACKOFF_MS) {
       const timer = setTimeout(() => {
         if (el._hlsGen !== gen || el._hls !== hls) return;
+        if (playbackLooksHealthy(video)) {
+          resetSoftCounters();
+          return;
+        }
         const ct = Number.isFinite(video.currentTime) ? video.currentTime : 0;
-        kickStartLoad(ct > 0.25 ? ct : undefined);
+        kickStartLoad(ct);
       }, delay);
       el._hlsNetTimers!.push(timer);
     }
 
-    // After last backoff kick, if still broken hls.js will fire another fatal → escalate.
-    const escalateAfter = NET_BACKOFF_MS[NET_BACKOFF_MS.length - 1] + 4_000;
     const escalateTimer = setTimeout(() => {
       if (el._hlsGen !== gen || el._hls !== hls) return;
       if (!netBackoffActive) return;
+      if (playbackLooksHealthy(video)) {
+        resetSoftCounters();
+        return;
+      }
       netBackoffActive = false;
       clearNetBackoffTimers(el);
+
+      if (softNetRounds < MAX_SOFT_NET_ROUNDS) {
+        // Another quiet soft round before reresolve.
+        scheduleNetworkBackoff();
+        return;
+      }
+
       if (reResolveAttempts++ < 2) {
+        handlers.onReconnect?.(true);
         handlers.onFatal?.('reresolve');
       } else {
         handlers.onReconnect?.(false);
         handlers.onFatal?.('fallback');
       }
-    }, escalateAfter);
+    }, NET_ESCALATE_AFTER_MS);
     el._hlsNetTimers!.push(escalateTimer);
   };
 
-  const onError = (_evt: string, data: { fatal: boolean; type: string }) => {
+  const onError = (_evt: string, data: { fatal: boolean; type: string; details?: string }) => {
     if (el._hlsGen !== gen) return;
     if (!data.fatal) {
-      if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+      if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        try { hls.recoverMediaError(); } catch { /* ignore */ }
+      }
+      // Non-fatal network (frag retry etc.) — hls.js handles; stay silent.
       return;
     }
-    if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaAttempts++ < 3) {
-      hls.recoverMediaError();
+    if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaAttempts++ < 4) {
+      try { hls.recoverMediaError(); } catch { /* ignore */ }
       handlers.onFatal?.('recover');
       return;
     }
     if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-      if (netAttempts++ < 1 || !netBackoffActive) {
-        scheduleNetworkBackoff();
-        return;
-      }
-      // Already in backoff window — wait for escalate timer.
+      scheduleNetworkBackoff();
       return;
     }
     if (reResolveAttempts++ < 2) {
@@ -211,5 +248,8 @@ export function swapMediaSource(
 export function startHlsFromTime(video: HTMLVideoElement, time: number): void {
   const hls = getAttachedHls(video);
   if (!hls) return;
-  try { hls.startLoad(time); } catch { /* ignore */ }
+  try {
+    const t = Number.isFinite(time) && time > 0.25 ? time : -1;
+    hls.startLoad(t);
+  } catch { /* ignore */ }
 }

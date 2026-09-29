@@ -28,9 +28,11 @@ export type PlayerCorePlayOpts = {
 };
 
 const WD_DELAY_MS = 5_000;
-const STALL_TICK_MS = 5_000;
+const STALL_TICK_MS = 6_000;
 /** Progressive: waiting/stalled longer than this → soft reconnect kick. */
-const PROGRESSIVE_WAIT_MS = 8_000;
+const PROGRESSIVE_WAIT_MS = 10_000;
+/** Soft stall kicks before full reresolve (× STALL_TICK_MS). */
+const STALL_SOFT_TICKS = 3;
 
 export class PlayerCore {
   video: HTMLVideoElement | null = null;
@@ -155,9 +157,8 @@ export class PlayerCore {
           silentReresolve();
         } else if (kind === 'fallback') {
           fallback();
-        } else if (kind === 'recover') {
-          opts.onReconnect?.(true);
         }
+        // 'recover' — silent soft kick, no overlay
       },
     });
 
@@ -192,6 +193,7 @@ export class PlayerCore {
           if (end - video.currentTime > 1.5) {
             lastStall = video.currentTime;
             stallTicks = 0;
+            opts.onReconnect?.(false);
             return;
           }
         }
@@ -200,14 +202,10 @@ export class PlayerCore {
       const ct = video.currentTime;
       if (lastStall >= 0 && Math.abs(ct - lastStall) < 0.05) {
         stallTicks += 1;
-        if (stallTicks === 1) {
+        if (stallTicks <= STALL_SOFT_TICKS) {
+          // Quiet soft kick — keep last frame, no UI.
           if (isHls) startHlsFromTime(video, ct);
           else this.kickProgressiveReload(video, opts.url, ct);
-          opts.onReconnect?.(true);
-        } else if (stallTicks === 2) {
-          if (isHls) startHlsFromTime(video, ct);
-          else this.kickProgressiveReload(video, opts.url, ct);
-          opts.onReconnect?.(true);
         } else {
           stallTicks = 0;
           lastStall = -1;
@@ -234,16 +232,14 @@ export class PlayerCore {
           this.progressiveWaitTimer = null;
           if (myGen !== this.wdGen || video.paused || video.ended) return;
           const ct = !isNaN(video.currentTime) ? video.currentTime : 0;
-          opts.onReconnect?.(true);
           if (!progressiveEscalated) {
             progressiveEscalated = true;
+            // Quiet soft reload — no overlay.
             this.kickProgressiveReload(video, opts.url, ct);
-            // Second chance after another wait window → reresolve
             this.progressiveWaitTimer = setTimeout(() => {
               this.progressiveWaitTimer = null;
               if (myGen !== this.wdGen) return;
               if (video.paused || video.ended) return;
-              // Still waiting → escalate
               if (video.readyState < 3) silentReresolve();
             }, PROGRESSIVE_WAIT_MS);
           } else {
@@ -268,7 +264,7 @@ export class PlayerCore {
       hardErrors += 1;
       const ct = !isNaN(video.currentTime) ? video.currentTime : 0;
       if (hardErrors === 1 && !isHls) {
-        opts.onReconnect?.(true);
+        // Quiet soft reload.
         this.kickProgressiveReload(video, opts.url, ct);
         return;
       }
