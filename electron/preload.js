@@ -289,6 +289,19 @@ contextBridge.exposeInMainWorld('electron', {
   composerReadyToClose: () => ipcRenderer.send('composer:readyToClose'),
   composerPublished: (data) => ipcRenderer.send('composer:published', data ?? null),
   composerDraftsChanged: () => ipcRenderer.send('composer:draftsChanged'),
+  // Diagnostics (console + network from all windows)
+  diagnosticsGet: (opts) => ipcRenderer.invoke('diagnostics:get', opts ?? {}),
+  diagnosticsStats: () => ipcRenderer.invoke('diagnostics:stats'),
+  diagnosticsClear: () => ipcRenderer.invoke('diagnostics:clear'),
+  diagnosticsSubscribe: () => ipcRenderer.invoke('diagnostics:subscribe'),
+  diagnosticsUnsubscribe: () => ipcRenderer.invoke('diagnostics:unsubscribe'),
+  diagnosticsExportZip: () => ipcRenderer.invoke('diagnostics:exportZip'),
+  diagnosticsReveal: (filePath) => ipcRenderer.invoke('diagnostics:reveal', filePath),
+  onDiagnosticsEntry: (cb) => {
+    const handler = (_e, entry) => cb(entry);
+    ipcRenderer.on('diagnostics:entry', handler);
+    return () => ipcRenderer.removeListener('diagnostics:entry', handler);
+  },
   // Logging
   sendLobbyActionLogToPlayer: (entry) => ipcRenderer.send('lobby:actionLogToPlayer', entry),
 });

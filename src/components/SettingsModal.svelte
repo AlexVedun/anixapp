@@ -10,6 +10,7 @@
   import PlaybackPage from '../views/Settings/pages/PlaybackPage.svelte';
   import DiscordRpcPage from '../views/Settings/pages/DiscordRpcPage.svelte';
   import AboutPage from '../views/Settings/pages/AboutPage.svelte';
+  import DebugPage from '../views/Settings/pages/DebugPage.svelte';
   import DeveloperPage from '../views/Settings/pages/DeveloperPage.svelte';
   import UiV2BackBar from './uikit-v2/UiV2BackBar.svelte';
   import UiV2RoundButton from './uikit-v2/UiV2RoundButton.svelte';
@@ -34,6 +35,7 @@
     | 'behavior'
     | 'playback'
     | 'discord'
+    | 'debug'
     | 'developer'
     | 'about';
 
@@ -44,6 +46,7 @@
     behavior: 'Поведение',
     playback: 'Воспроизведение',
     discord: 'Discord RPC',
+    debug: 'Отладка',
     developer: 'Разработчик',
     about: 'О программе',
   };
@@ -51,9 +54,10 @@
   const MENU_ROWS: { tab: SettingsTab; title: string; sub: string; section?: string }[] = [
     { tab: 'appearance', title: 'Внешний вид', sub: 'Тема, масштаб, навигация', section: 'Настройки приложения' },
     { tab: 'connection', title: 'Соединение', sub: 'Эндпоинт API' },
-    { tab: 'behavior', title: 'Поведение', sub: 'Трей, ускорение, диагностика' },
+    { tab: 'behavior', title: 'Поведение', sub: 'Трей и ускорение' },
     { tab: 'playback', title: 'Воспроизведение', sub: 'Апскейл, звук и горячие клавиши' },
     { tab: 'discord', title: 'Discord RPC', sub: 'Статус в Discord' },
+    { tab: 'debug', title: 'Отладка', sub: 'Логи консоли и сети' },
   ];
 
   const isDev = import.meta.env.DEV;
@@ -211,7 +215,10 @@
             </div>
           </div>
         {:else}
-          <div class="settings-panel__page">
+          <div
+            class="settings-panel__page"
+            class:settings-panel__page--fill={screen === 'debug'}
+          >
             {#if screen === 'account'}
               <AccountPage />
             {:else if screen === 'appearance'}
@@ -224,6 +231,8 @@
               <PlaybackPage />
             {:else if screen === 'discord'}
               <DiscordRpcPage />
+            {:else if screen === 'debug'}
+              <DebugPage />
             {:else if screen === 'developer'}
               <DeveloperPage />
             {:else}

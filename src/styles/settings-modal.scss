@@ -654,6 +654,354 @@
   border-top: 1px solid $color-border;
 }
 
+.debug-settings {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+// ——— Live diagnostics ———
+.diag-live {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.4rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.diag-live__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+  flex-shrink: 0;
+}
+
+.diag-live__actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.diag-live__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.diag-live__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.35rem;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--uikit-v2-accent, #{$color-accent}) 14%, transparent);
+  color: var(--uikit-v2-accent, #{$color-accent});
+
+  &--muted {
+    background: var(--uiv2-surface-raised, color-mix(in srgb, #{$color-text} 8%, transparent));
+    color: $color-text-muted;
+    font-weight: 500;
+  }
+}
+
+.diag-live__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.diag-live__netbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.18rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, $color-surface-hover 50%, transparent);
+  border: 1px solid color-mix(in srgb, $color-border 85%, transparent);
+  flex-shrink: 0;
+}
+
+.diag-live__netbar-sep {
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.15rem;
+  margin: 0 0.1rem;
+  background: color-mix(in srgb, $color-text 18%, transparent);
+}
+
+.diag-live__netchip {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, $color-text 14%, transparent);
+  margin: 0;
+  min-height: 1.4rem;
+  padding: 0 0.45rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, $color-surface 70%, transparent);
+  color: color-mix(in srgb, $color-text 88%, transparent);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, $color-text 28%, transparent);
+    color: $color-text;
+  }
+
+  &--on {
+    border-color: transparent;
+    background: var(--uikit-v2-accent, #{$color-accent});
+    color: #fff;
+  }
+}
+
+.diag-live__chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  padding: 0.12rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, $color-surface-hover 55%, transparent);
+  border: 1px solid color-mix(in srgb, $color-border 80%, transparent);
+}
+
+.diag-live__chip {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  min-height: 1.4rem;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  background: transparent;
+  color: $color-text-muted;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    color: $color-text;
+    background: color-mix(in srgb, $color-text 6%, transparent);
+  }
+
+  &--on {
+    background: color-mix(in srgb, $color-text 10%, transparent);
+    color: $color-text;
+  }
+
+  &--toggle {
+    flex-shrink: 0;
+    border: 1px solid color-mix(in srgb, $color-border 90%, transparent);
+    background: color-mix(in srgb, $color-surface-hover 40%, transparent);
+  }
+
+  &--err.diag-live__chip--on {
+    background: color-mix(in srgb, $color-error 18%, transparent);
+    color: color-mix(in srgb, $color-error 88%, #fff);
+  }
+
+  &--warn.diag-live__chip--on {
+    background: color-mix(in srgb, #e8a838 18%, transparent);
+    color: color-mix(in srgb, #e8a838 85%, #fff);
+  }
+}
+
+.diag-live__search {
+  position: relative;
+  flex: 1 1 8rem;
+  min-width: 7rem;
+  max-width: 18rem;
+
+  &-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  input {
+    width: 100%;
+    min-height: 1.85rem;
+    padding: 0 0.7rem;
+    border-radius: 999px;
+    border: 1px solid $color-border;
+    background: color-mix(in srgb, $color-surface 88%, #000);
+    color: $color-text;
+    font: inherit;
+    font-size: 0.78rem;
+
+    &::placeholder {
+      color: $color-text-muted;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: color-mix(in srgb, var(--uikit-v2-accent, #{$color-accent}) 45%, $color-border);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--uikit-v2-accent, #{$color-accent}) 16%, transparent);
+    }
+  }
+}
+
+.diag-live__feedback {
+  margin: 0;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  color: color-mix(in srgb, #5cb85c 75%, $color-text);
+
+  &--err {
+    color: color-mix(in srgb, $color-error 85%, $color-text);
+  }
+}
+
+.diag-live__zip-hint {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: $color-text-muted;
+}
+
+.diag-live__list {
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, $color-border 90%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, $color-surface-hover 35%, transparent), transparent 40%),
+    color-mix(in srgb, $color-surface 92%, #000);
+  overflow: hidden;
+}
+
+.diag-live__empty {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 1.25rem;
+  text-align: center;
+  color: $color-text-muted;
+  font-size: 0.82rem;
+}
+
+.diag-live__row {
+  display: grid;
+  grid-template-columns: 5.1rem 4.2rem 2.9rem minmax(0, 1fr);
+  gap: 0.3rem 0.4rem;
+  align-items: start;
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, $color-text 5%, transparent);
+
+  &:hover {
+    background: color-mix(in srgb, $color-text 4%, transparent);
+  }
+
+  &--error {
+    background: color-mix(in srgb, $color-error 7%, transparent);
+  }
+
+  &--warn {
+    background: color-mix(in srgb, #e8a838 6%, transparent);
+  }
+
+  &--network .diag-live__msg {
+    font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', Consolas, monospace;
+    font-size: 0.74rem;
+  }
+}
+
+.diag-live__time {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: $color-text-muted;
+  padding-top: 0.15rem;
+}
+
+.diag-live__badge,
+.diag-live__level {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.diag-live__badge {
+  background: var(--uiv2-surface-raised, color-mix(in srgb, #{$color-text} 8%, transparent));
+  color: $color-text-muted;
+
+  &--console { color: #7db7ff; background: color-mix(in srgb, #7db7ff 12%, transparent); }
+  &--network { color: #7ddea5; background: color-mix(in srgb, #7ddea5 12%, transparent); }
+  &--main { color: #c4a0ff; background: color-mix(in srgb, #c4a0ff 12%, transparent); }
+  &--system { color: #ffc56e; background: color-mix(in srgb, #ffc56e 12%, transparent); }
+  &--navigation { color: #ff8fab; background: color-mix(in srgb, #ff8fab 12%, transparent); }
+}
+
+.diag-live__level {
+  &--debug { color: $color-text-muted; background: transparent; }
+  &--info { color: #9ec1ff; background: color-mix(in srgb, #9ec1ff 10%, transparent); }
+  &--warn { color: #ffc56e; background: color-mix(in srgb, #ffc56e 12%, transparent); }
+  &--error { color: #ff8f8f; background: color-mix(in srgb, #ff8f8f 14%, transparent); }
+}
+
+.diag-live__body {
+  min-width: 0;
+}
+
+.diag-live__msg {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: $color-text;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.diag-live__meta {
+  margin: 0.12rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  color: $color-text-muted;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .diag-live__row {
+    grid-template-columns: 4.6rem 1fr;
+    grid-template-areas:
+      "time badges"
+      "body body";
+  }
+
+  .diag-live__time { grid-area: time; }
+  .diag-live__badge,
+  .diag-live__level { display: inline-flex; }
+  .diag-live__body { grid-area: body; grid-column: 1 / -1; }
+}
+
 .developer-bridge {
   code {
     font-size: 0.8125rem;

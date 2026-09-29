@@ -375,6 +375,31 @@ declare global {
       composerReadyToClose?: () => void;
       composerPublished?: (data: { articleId?: number; channelId?: number } | null) => void;
       composerDraftsChanged?: () => void;
+      diagnosticsGet?: (opts?: {
+        channel?: string;
+        level?: string;
+        limit?: number;
+        sinceId?: string;
+      }) => Promise<Array<Record<string, unknown>>>;
+      diagnosticsStats?: () => Promise<{
+        total: number;
+        max: number;
+        subscribers: number;
+        byChannel: Record<string, number>;
+        byLevel: Record<string, number>;
+      }>;
+      diagnosticsClear?: () => Promise<{ ok: boolean; count: number }>;
+      diagnosticsSubscribe?: () => Promise<{ ok: boolean; count: number }>;
+      diagnosticsUnsubscribe?: () => Promise<{ ok: boolean }>;
+      diagnosticsExportZip?: () => Promise<{
+        ok: boolean;
+        canceled?: boolean;
+        path?: string;
+        count?: number;
+        deviceSummary?: { os?: string; cpu?: string; ramGb?: number };
+      }>;
+      diagnosticsReveal?: (filePath: string) => Promise<{ ok: boolean }>;
+      onDiagnosticsEntry?: (cb: (entry: Record<string, unknown>) => void) => () => void;
       sendLobbyActionLogToPlayer?: (entry: Record<string, unknown>) => void;
     };
   }

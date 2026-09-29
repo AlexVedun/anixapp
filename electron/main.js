@@ -110,6 +110,8 @@ registerAll(deps);
 app.whenReady().then(() => {
   config.primeConfigCache();
 
+  require('./session-diagnostics').install();
+
   logger.init(app.getPath('userData'), app.getVersion(), process.versions.electron);
   logger.patchConsole();
   logger.info('main', 'app ready', {

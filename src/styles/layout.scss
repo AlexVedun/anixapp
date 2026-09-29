@@ -957,6 +957,16 @@ $titlebar-h: 40px;
   padding: 0.15rem 1.1rem 1.75rem;
 }
 
+.settings-panel__page--fill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  padding-bottom: 0.65rem;
+  overflow: hidden;
+}
+
 .settings-panel__meta {
   display: flex;
   flex-direction: column;
