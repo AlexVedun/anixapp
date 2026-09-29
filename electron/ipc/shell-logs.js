@@ -53,6 +53,9 @@ function register() {
     return diagnostics.exportZipWithDialog(win && !win.isDestroyed() ? win : null);
   });
 
+  ipcMain.handle('diagnostics:paths', () => diagnostics.getPaths());
+  ipcMain.handle('diagnostics:openDir', () => diagnostics.openLogsDir());
+
   ipcMain.handle('diagnostics:reveal', async (_, filePath) => {
     if (filePath) shell.showItemInFolder(filePath);
     return { ok: true };

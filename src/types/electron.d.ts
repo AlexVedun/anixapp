@@ -398,6 +398,8 @@ declare global {
         count?: number;
         deviceSummary?: { os?: string; cpu?: string; ramGb?: number };
       }>;
+      diagnosticsPaths?: () => Promise<{ dir: string; file: string; zipDefaultDir: string }>;
+      diagnosticsOpenDir?: () => Promise<{ ok: boolean; path?: string }>;
       diagnosticsReveal?: (filePath: string) => Promise<{ ok: boolean }>;
       onDiagnosticsEntry?: (cb: (entry: Record<string, unknown>) => void) => () => void;
       sendLobbyActionLogToPlayer?: (entry: Record<string, unknown>) => void;

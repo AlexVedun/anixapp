@@ -13,6 +13,8 @@ const zlib = require('zlib');
 
 const MAX_ENTRIES = 8_000;
 const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error'];
+const DIAG_DIR_NAME = 'diagnostics';
+const LIVE_LOG_NAME = 'live.jsonl';
 
 /** @type {Array<Record<string, unknown>>} */
 let entries = [];
@@ -23,6 +25,13 @@ const subscribers = new Set();
 /** url|error → last push ts — throttle identical network noise */
 const recentNetErrors = new Map();
 const NET_ERROR_THROTTLE_MS = 15_000;
+
+/** @type {string | null} */
+let logsDir = null;
+/** @type {string | null} */
+let liveLogFile = null;
+/** @type {Promise<void>} */
+let writeChain = Promise.resolve();
 
 const REDACT_RE = [
   /([?&](?:token|access_token|refresh_token|authorization|password|passwd|api[_-]?key)=)[^&]+/gi,
@@ -41,6 +50,75 @@ function sanitise(text) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function ensureLogPaths() {
+  if (logsDir && liveLogFile) return { dir: logsDir, file: liveLogFile };
+  try {
+    logsDir = path.join(app.getPath('userData'), DIAG_DIR_NAME);
+    fs.mkdirSync(logsDir, { recursive: true });
+    liveLogFile = path.join(logsDir, LIVE_LOG_NAME);
+    const marker = path.join(logsDir, 'README.txt');
+    if (!fs.existsSync(marker)) {
+      fs.writeFileSync(
+        marker,
+        [
+          'AnixApp — папка диагностики',
+          '',
+          `${LIVE_LOG_NAME}  — текущий журнал (JSONL, по строке на событие)`,
+          'ZIP-архивы пользователь сохраняет вручную (по умолчанию в «Документы»).',
+          'Токены и пароли в логах маскируются.',
+          '',
+        ].join('\n'),
+        'utf8',
+      );
+    }
+  } catch (err) {
+    console.error('[diagnostics] ensureLogPaths failed', err);
+  }
+  return { dir: logsDir, file: liveLogFile };
+}
+
+function appendToLiveFile(entry) {
+  const { file } = ensureLogPaths();
+  if (!file) return;
+  const line = `${JSON.stringify(entry)}\n`;
+  writeChain = writeChain
+    .then(() => fs.promises.appendFile(file, line, 'utf8'))
+    .catch(() => { /* ignore disk errors */ });
+}
+
+function truncateLiveFile() {
+  const { file } = ensureLogPaths();
+  if (!file) return;
+  writeChain = writeChain
+    .then(() => fs.promises.writeFile(file, '', 'utf8'))
+    .catch(() => { /* ignore */ });
+}
+
+function getPaths() {
+  const { dir, file } = ensureLogPaths();
+  let zipDefaultDir = '';
+  try {
+    zipDefaultDir = app.getPath('documents');
+  } catch { /* ignore */ }
+  return {
+    dir: dir || '',
+    file: file || '',
+    zipDefaultDir,
+  };
+}
+
+function openLogsDir() {
+  const { dir } = ensureLogPaths();
+  if (!dir) return { ok: false };
+  try {
+    const { shell } = require('electron');
+    shell.openPath(dir);
+    return { ok: true, path: dir };
+  } catch {
+    return { ok: false };
+  }
 }
 
 function windowLabel(contents) {
@@ -78,6 +156,7 @@ function push(entry) {
   if (entries.length > MAX_ENTRIES) {
     entries = entries.slice(entries.length - MAX_ENTRIES);
   }
+  appendToLiveFile(full);
   broadcast(full);
   return full;
 }
@@ -299,6 +378,7 @@ function install() {
   if (installed) return;
   installed = true;
 
+  ensureLogPaths();
   patchMainConsole();
   attachNetwork(session.defaultSession);
 
@@ -352,6 +432,7 @@ function clear() {
   entries = [];
   recentNetErrors.clear();
   seq = 0;
+  truncateLiveFile();
   // Don't push/broadcast a system row here — UI reloads via diagnostics:get.
   // A broadcast + get race caused duplicate Svelte each keys.
   return { ok: true, count: 0 };
@@ -483,6 +564,7 @@ function buildReadme({ device, counts, eventCount }) {
   const displayLine = (device.displays || [])
     .map((d) => `${d.width}×${d.height}@${d.scaleFactor}x${d.primary ? ' primary' : ''}`)
     .join(', ') || '—';
+  const paths = getPaths();
 
   return [
     'AnixApp — диагностический архив',
@@ -495,6 +577,10 @@ function buildReadme({ device, counts, eventCount }) {
     '  console.txt     — консоль renderer + main + system + navigation (текст)',
     '  network.txt     — сетевые запросы (метод, статус, URL)',
     '  events.jsonl    — полный журнал событий (по строке JSON на событие)',
+    '',
+    'На диске у пользователя (живой журнал):',
+    `  Папка:  ${paths.dir || '—'}`,
+    `  Файл:   ${paths.file || '—'}`,
     '',
     'Приватность:',
     '  Токены, пароли и Bearer в текстах/URL маскируются как [REDACTED].',
@@ -529,6 +615,7 @@ const ZIP_CONTENTS_MESSAGE = [
   '• events.jsonl — полный журнал событий',
   '• README.txt — описание содержимого',
   '',
+  'Живой журнал также пишется в папку diagnostics внутри данных приложения.',
   'Пароли и токены маскируются. Учётные данные и файлы не копируются.',
 ].join('\n');
 
@@ -574,6 +661,7 @@ async function exportZipWithDialog(browserWindow) {
     cpu: device.cpu,
     memoryGb: { total: device.memory?.totalGb, free: device.memory?.freeGb },
     displays: device.displays,
+    logPaths: getPaths(),
     counts,
     contents: [
       'README.txt',
@@ -611,5 +699,7 @@ module.exports = {
   stats,
   exportZipWithDialog,
   collectDeviceInfo,
+  getPaths,
+  openLogsDir,
   formatLine,
 };

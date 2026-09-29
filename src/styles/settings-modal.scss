@@ -880,6 +880,74 @@
   color: $color-text-muted;
 }
 
+.diag-live__path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, $color-border 90%, transparent);
+  background: color-mix(in srgb, $color-surface-hover 40%, transparent);
+}
+
+.diag-live__path-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.diag-live__path-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+}
+
+.diag-live__path-value {
+  margin: 0;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: $color-text;
+  word-break: break-all;
+}
+
+.diag-live__path-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.diag-live__path-btn {
+  appearance: none;
+  margin: 0;
+  min-height: 1.55rem;
+  padding: 0 0.55rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, $color-text 14%, transparent);
+  background: color-mix(in srgb, $color-surface 70%, transparent);
+  color: $color-text;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    border-color: color-mix(in srgb, $color-text 28%, transparent);
+    background: color-mix(in srgb, $color-text 6%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--uikit-v2-accent, #{$color-accent}) 45%, transparent);
+    outline-offset: 1px;
+  }
+}
+
 .diag-live__list {
   flex: 1;
   min-height: 0;

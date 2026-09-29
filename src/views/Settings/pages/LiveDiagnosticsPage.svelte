@@ -80,6 +80,7 @@
   let feedback = $state('');
   let feedbackKind = $state<'ok' | 'err'>('ok');
   let stats = $state<{ total: number; max: number; byChannel: Record<string, number>; byLevel: Record<string, number> } | null>(null);
+  let logPaths = $state<{ dir: string; file: string; zipDefaultDir: string } | null>(null);
   let viewport: HTMLDivElement | null = $state(null);
   let unsubEntry: (() => void) | null = null;
   let pending: DiagEntry[] = [];
@@ -159,6 +160,26 @@
 
   async function refreshStats() {
     stats = (await window.electron?.diagnosticsStats?.()) ?? null;
+  }
+
+  async function refreshPaths() {
+    logPaths = (await window.electron?.diagnosticsPaths?.()) ?? null;
+  }
+
+  async function openLogsFolder() {
+    const res = await window.electron?.diagnosticsOpenDir?.();
+    if (!res?.ok) setFeedback('Не удалось открыть папку', 'err');
+  }
+
+  async function copyLogsPath() {
+    const text = logPaths?.file || logPaths?.dir || '';
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setFeedback('Путь скопирован');
+    } catch {
+      setFeedback('Не удалось скопировать', 'err');
+    }
   }
 
   async function loadInitial() {
@@ -252,6 +273,7 @@
 
   onMount(() => {
     void loadInitial();
+    void refreshPaths();
     void window.electron?.diagnosticsSubscribe?.();
     unsubEntry = window.electron?.onDiagnosticsEntry?.((raw) => {
       enqueue(raw as DiagEntry);
@@ -383,8 +405,24 @@
     </div>
   {/if}
 
+  {#if logPaths?.dir}
+    <div class="diag-live__path" title={logPaths.file || logPaths.dir}>
+      <div class="diag-live__path-text">
+        <span class="diag-live__path-label">Пишутся в</span>
+        <code class="diag-live__path-value">{logPaths.file || logPaths.dir}</code>
+      </div>
+      <div class="diag-live__path-actions">
+        <button type="button" class="diag-live__path-btn" onclick={() => { void copyLogsPath(); }}>Копировать</button>
+        <button type="button" class="diag-live__path-btn" onclick={() => { void openLogsFolder(); }}>Открыть</button>
+      </div>
+    </div>
+  {/if}
+
   <p class="diag-live__zip-hint">
-    ZIP: устройство (ОС/CPU/RAM/GPU), консоль, сеть · токены маскируются
+    ZIP: устройство + консоль + сеть · токены маскируются
+    {#if logPaths?.zipDefaultDir}
+      · сохранение по умолчанию: {logPaths.zipDefaultDir}
+    {/if}
   </p>
 
   <div class="diag-live__list uiv2-scroll-area uiv2-scroll-area--y" use:uiv2CustomScroll={{ axis: 'y' }}>

@@ -296,6 +296,8 @@ contextBridge.exposeInMainWorld('electron', {
   diagnosticsSubscribe: () => ipcRenderer.invoke('diagnostics:subscribe'),
   diagnosticsUnsubscribe: () => ipcRenderer.invoke('diagnostics:unsubscribe'),
   diagnosticsExportZip: () => ipcRenderer.invoke('diagnostics:exportZip'),
+  diagnosticsPaths: () => ipcRenderer.invoke('diagnostics:paths'),
+  diagnosticsOpenDir: () => ipcRenderer.invoke('diagnostics:openDir'),
   diagnosticsReveal: (filePath) => ipcRenderer.invoke('diagnostics:reveal', filePath),
   onDiagnosticsEntry: (cb) => {
     const handler = (_e, entry) => cb(entry);
