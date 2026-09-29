@@ -32,20 +32,24 @@ export function isLibriaHtmlEmbed(url: string): boolean {
   return /iframe\.php/i.test(url) || /\/public\/iframe/i.test(url);
 }
 
-/** Sibnet embed в iframe бесполезен: мёртвый ролик + CORS на счётчике. */
+/** Sibnet/Libria iframe бесполезен: мёртвый ролик или страница с 404.png. */
 export function allowsIframeFallback(url: string): boolean {
   if (!url) return false;
   if (/sibnet\.ru/i.test(url)) return false;
+  if (isLibriaHtmlEmbed(url) || /libria\.fun|anilibria|aniliberty/i.test(url)) return false;
   return true;
 }
 
-export function userPlaybackError(url: string): string {
+export function userPlaybackError(url: string, code?: string | null): string {
+  if (code === 'libria-release-missing') {
+    return 'Релиз удалён или недоступен на AniLibria — попробуйте другой источник (например Kodik)';
+  }
   if (/sibnet\.ru/i.test(url)) return 'Видео на Sibnet недоступно';
   if (/kodikplayer|kodik\.info|solodcdn|kodikcdn/i.test(url)) {
     return 'CDN Kodik недоступен с вашей сети — попробуйте другую озвучку или VPN';
   }
   if (isLibriaHtmlEmbed(url) || /libria\.fun|anilibria/i.test(url)) {
-    return 'Релиз недоступен на AniLibria — попробуйте другой источник (например Kodik)';
+    return 'Релиз удалён или недоступен на AniLibria — попробуйте другой источник (например Kodik)';
   }
   return 'Не удалось загрузить видео';
 }
@@ -173,7 +177,14 @@ const QUALITY_PRIORITY = ['2160', '2160p', '1440', '1440p', '1080', '1080p', '72
 export async function resolveEpisodeUrl(
   episodeUrl: string,
   iframe: boolean,
-): Promise<{ playUrl: string; useVideo: boolean; qualityMap: Record<string, string>; currentQuality: string; skip: SkipMarks | null }> {
+): Promise<{
+  playUrl: string;
+  useVideo: boolean;
+  qualityMap: Record<string, string>;
+  currentQuality: string;
+  skip: SkipMarks | null;
+  error?: string | null;
+}> {
   let url = episodeUrl.startsWith('http') ? episodeUrl : `https:${episodeUrl}`;
   url = stripKodikQueryParams(url);
   const host = (url.match(/https?:\/\/([^/]+)/) || [])[1] || '';
@@ -204,6 +215,7 @@ export async function resolveEpisodeUrl(
   let currentQuality = '';
   let embedReferer = url;
   let skip: SkipMarks | null = null;
+  let resolveError: string | null = null;
 
   setEmbedMediaContext(url);
 
@@ -214,6 +226,7 @@ export async function resolveEpisodeUrl(
       const remoteMap: Record<string, string> = res?.qualityMap ?? {};
       const dlHeaders = (res?.downloadHeaders as Record<string, string> | undefined) ?? {};
       skip = normalizeSkipMarks(res?.skip);
+      if (typeof res?.error === 'string' && res.error) resolveError = res.error;
       setEmbedMediaContext(url, dlHeaders);
       if (dlHeaders.Referer) embedReferer = dlHeaders.Referer;
 
@@ -251,6 +264,10 @@ export async function resolveEpisodeUrl(
           }
         }
         useVideo = !isUnplayableVideoSrc(playUrl);
+        resolveError = null;
+      } else if (isLibria && (resolveError === 'libria-release-missing' || !directUrl)) {
+        useVideo = false;
+        if (!resolveError) resolveError = 'libria-release-missing';
       }
     } catch {}
   }
@@ -275,7 +292,7 @@ export async function resolveEpisodeUrl(
   }
 
   if (!useVideo && iframe) { playUrl = url; useVideo = false; }
-  return { playUrl, useVideo, qualityMap, currentQuality, skip };
+  return { playUrl, useVideo, qualityMap, currentQuality, skip, error: resolveError };
 }
 
 /**
@@ -291,12 +308,21 @@ export async function resolveEpisodeUrlWithRetry(
   const iframeOnly = /youtube\.com|youtu\.be/i.test(abs);
   const retryableSocial = /vk\.com|vkvideo|rutube\.ru|ok\.ru|studiomir|mail\.ru|myvi\.|secvideo1|csst\.online|sstrge|sovetromantica/i.test(abs);
   const attempts = iframeOnly ? 1 : maxAttempts;
-  let lastResult = { playUrl: abs, useVideo: false, qualityMap: {} as Record<string, string>, currentQuality: '', skip: null as SkipMarks | null };
+  let lastResult = {
+    playUrl: abs,
+    useVideo: false,
+    qualityMap: {} as Record<string, string>,
+    currentQuality: '',
+    skip: null as SkipMarks | null,
+    error: null as string | null,
+  };
   for (let i = 0; i < attempts; i++) {
     try {
       const result = await resolveEpisodeUrl(episodeUrl, iframe);
       if (result.useVideo && result.playUrl) return result;
       lastResult = result;
+      // Libria 404.png / deleted title — no point retrying the same embed.
+      if (result.error === 'libria-release-missing') return result;
       if (iframeOnly || (isSocialEmbedUrl(abs) && !retryableSocial)) {
         return result.playUrl ? result : lastResult;
       }

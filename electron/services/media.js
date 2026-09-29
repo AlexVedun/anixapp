@@ -7,6 +7,7 @@ const { session, net, dialog, shell, app, ipcMain } = require('electron');
 const { BROWSER_UA } = require('../cdn-proxy');
 const { ANIXART_UA } = require('../lib/constants');
 const { getDirectVideoLink, isHtmlPlayerPage } = require('../lib/direct-video-link');
+const { resolveViaAnixback } = require('../lib/stream-resolve-remote');
 const config = require('../lib/config-store');
 const state = require('../lib/app-state');
 const { formatDownloadError, extractRawMessage } = require('../lib/download-errors');
@@ -53,7 +54,16 @@ async function refreshDownloadUrl(job) {
     if (!embed || typeof embed !== 'string') return null;
     const embedUrl = embed.startsWith('http') ? embed : `https:${embed}`;
 
-    const direct = await getDirectVideoLink(embedUrl);
+    const direct = await (async () => {
+      try {
+        const { resolveViaAnixback } = require('./stream-resolve-remote');
+        const remote = await resolveViaAnixback(embedUrl);
+        if (remote?.directUrl) return remote;
+      } catch (e) {
+        console.warn('[stream] anixback resolve failed in download refresh:', e?.message || e);
+      }
+      return getDirectVideoLink(embedUrl);
+    })();
     let url = direct?.directUrl || '';
     if (!url) return null;
     url = String(url)
@@ -408,7 +418,18 @@ async function downloadWithFfmpeg(inputUrl, outputPath, headers = {}, onProgress
 }
 
 ipcMain.handle('anix:getDirectVideoLink', async (_, embedUrl) => {
-  return getDirectVideoLink(embedUrl);
+  const url = String(embedUrl || '').trim();
+  if (!url) {
+    return { directUrl: null, quality: null, qualityMap: {}, downloadHeaders: {}, skip: null, error: null };
+  }
+  try {
+    const remote = await resolveViaAnixback(url);
+    if (remote?.directUrl) return remote;
+    if (remote?.error === 'libria-release-missing') return remote;
+  } catch (e) {
+    console.warn('[stream] anixback resolve failed, local fallback:', e?.message || e);
+  }
+  return getDirectVideoLink(url);
 });
 
 function getDefaultDownloadDirectory() {

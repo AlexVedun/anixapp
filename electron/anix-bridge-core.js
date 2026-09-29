@@ -11,6 +11,7 @@ const { ANIXART_UA } = require('./lib/constants');
 const { attachAnixErrorMessages, enrichAnixError } = require('./lib/anix-errors');
 const homeCustomFilter = require('./home-custom-filter');
 const { getDirectVideoLink } = require('./lib/direct-video-link');
+const { resolveViaAnixback } = require('./lib/stream-resolve-remote');
 
 const DEFAULT_BASE_URL = 'https://api-s.anixsekai.com';
 
@@ -96,7 +97,18 @@ function createAnixBridgeCore(options = {}) {
   }
 
   async function getDirectVideoLinkHandler(embedUrl) {
-    return getDirectVideoLink(embedUrl);
+    const url = String(embedUrl || '').trim();
+    if (!url) {
+      return { directUrl: null, quality: null, qualityMap: {}, downloadHeaders: {}, skip: null, error: null };
+    }
+    try {
+      const remote = await resolveViaAnixback(url);
+      if (remote?.directUrl) return remote;
+      if (remote?.error === 'libria-release-missing') return remote;
+    } catch (e) {
+      console.warn('[stream] anixback resolve failed, local fallback:', e?.message || e);
+    }
+    return getDirectVideoLink(url);
   }
 
   const ctx = () => ({

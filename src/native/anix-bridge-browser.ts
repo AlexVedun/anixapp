@@ -257,7 +257,16 @@ export function createBrowserAnixBridge() {
       c.getClient().endpoints.release.episodeUpdates?.(toPositiveInt(releaseId), page)),
     'anix:getDirectVideoLink': async (_c, args) => {
       const embedUrl = String(args?.[0] || '');
-      // TV web prod: Kodik resolve on api.anixapp.com (tv.anixapp.com static nginx → 405 on POST).
+      // Prefer AnixBack server-side resolve (stable IP / headers for Kodik etc.).
+      try {
+        const { resolveViaAnixback } = await import('../services/stream-resolve');
+        const remote = await resolveViaAnixback(embedUrl);
+        if (remote?.directUrl) return remote;
+        if (remote?.error === 'libria-release-missing') return remote;
+      } catch (e) {
+        console.warn('[stream] anixback resolve failed:', e);
+      }
+      // TV web prod: dedicated bridge invoke if /api/stream unavailable on older deploy.
       if (import.meta.env.PROD && isTvMode()) {
         const res = await fetch(tvBridgeInvokeUrl(), {
           method: 'POST',

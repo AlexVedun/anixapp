@@ -55,8 +55,19 @@ export function refererForMediaUrl(url: string): string | undefined {
 
 export function buildHlsConfig(): Partial<HlsConfig> {
   return {
-    manifestLoadingTimeOut: 12_000,
-    fragLoadingTimeOut: 12_000,
+    // Unstable CDNs (Kodik / Libria): longer timeouts + more retries before fatal.
+    manifestLoadingTimeOut: 20_000,
+    manifestLoadingMaxRetry: 6,
+    manifestLoadingRetryDelay: 800,
+    manifestLoadingMaxRetryTimeout: 12_000,
+    levelLoadingTimeOut: 20_000,
+    levelLoadingMaxRetry: 4,
+    levelLoadingRetryDelay: 800,
+    levelLoadingMaxRetryTimeout: 12_000,
+    fragLoadingTimeOut: 20_000,
+    fragLoadingMaxRetry: 6,
+    fragLoadingRetryDelay: 600,
+    fragLoadingMaxRetryTimeout: 12_000,
     xhrSetup: (xhr, url) => {
       const ref = refererForMediaUrl(url);
       if (!ref) return;

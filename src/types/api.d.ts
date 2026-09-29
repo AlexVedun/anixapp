@@ -244,6 +244,7 @@ export interface AnixApi {
       qualityMap?: Record<string, string>;
       downloadHeaders?: Record<string, string>;
       skip?: { opening?: { start: number; end: number } | null; ending?: { start: number; end: number } | null } | null;
+      error?: string | null;
     }>;
     getVideos: (releaseId: number) => Promise<{
       blocks?: Array<{ category?: { id: number; name: string }; videos?: unknown[] }>;

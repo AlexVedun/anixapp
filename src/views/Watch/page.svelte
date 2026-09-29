@@ -56,6 +56,7 @@
   import LobbyActionLogPanel from './components/LobbyActionLogPanel.svelte';
   import LobbyChooserOverlay from './components/LobbyChooserOverlay.svelte';
   import NextEpisodePreview from './components/NextEpisodePreview.svelte';
+  import UiV2Button from '../../components/uikit-v2/UiV2Button.svelte';
   import { registerPlayerMuteToggle } from './core/player-mute';
   import type { PlayerChromeProps } from './shells/PlayerChrome.svelte';
   import { mapReleaseRawToCard } from '../../utils/release-card';
@@ -899,6 +900,7 @@
   /** Снять постер/«Загрузка…» и показать кадр. Плашку ошибки убираем только если серия реально идёт. */
   function revealPlayerMedia() {
     player.switching = false;
+    player.reconnecting = false;
     if (player.loadState === 'error') {
       const v = videoEl;
       const live = !!(player.useVideo && v && (
@@ -1596,6 +1598,7 @@
     playbackAlt = null;
     const gen = ++playbackAltGen;
     player.switching = false;
+    player.reconnecting = false;
     player.useVideo = false;
     player.playUrl = '';
     player.overlayVisible = true;
@@ -1609,6 +1612,14 @@
     if (text !== 'Не удалось воспроизвести скачанный файл.') {
       void loadPlaybackAlternative(gen, watchState.ep);
     }
+  }
+
+  function setPlayerReconnecting(active: boolean) {
+    if (player.loadState === 'error') {
+      player.reconnecting = false;
+      return;
+    }
+    player.reconnecting = active;
   }
 
   function retryCurrentPlayback() {
@@ -1658,6 +1669,7 @@
     pUrl: string, useVid: boolean, ep: number,
     titleStr: string, srcName: string, dubId: string,
     seekTime?: number, initialPaused?: boolean,
+    resolveError?: string | null,
   ) {
     watchState.ep = ep; watchState.title = titleStr;
     watchState.sourceName = srcName; watchState.dubberId = dubId;
@@ -1669,7 +1681,7 @@
     }
 
     if (!useVid && !allowsIframeFallback(core.origEpUrl || pUrl)) {
-      showPlayerError(core.origEpUrl || pUrl);
+      showPlayerError(core.origEpUrl || pUrl, userPlaybackError(core.origEpUrl || pUrl, resolveError));
       return;
     }
 
@@ -1682,7 +1694,8 @@
       core.applySource({
         url: pUrl, useVideo: false, ep, title: titleStr, sourceName: srcName, dubberId: dubId,
         volume: player.volume, muted: player.muted, onFallback: () => {}, onReresolve: () => {},
-        onWatchdogReresolve: async () => null, syncPlaybackRate: syncVideoPlaybackRate,
+        onWatchdogReresolve: async () => null, onReconnect: setPlayerReconnecting,
+        syncPlaybackRate: syncVideoPlaybackRate,
       });
       upscaleHoldForNewFrame = false;
       revealPlayerMedia();
@@ -1703,8 +1716,10 @@
       releaseId: watchState.releaseId,
       sourceId: watchState.sourceId,
       syncPlaybackRate: syncVideoPlaybackRate,
+      onReconnect: setPlayerReconnecting,
       onFallback: () => {
         player.switching = false;
+        player.reconnecting = false;
         if (pUrl.startsWith('anix-local:')) {
           showPlayerError('', 'Не удалось воспроизвести скачанный файл.');
           return;
@@ -1724,10 +1739,11 @@
       onReresolve: (savedTime, wasPaused) => {
         const curEpUrl = core.origEpUrl;
         if (!curEpUrl) return;
+        setPlayerReconnecting(true);
         core.invalidateCache(curEpUrl);
         core.resolve(curEpUrl, false).then(res => {
           if (!res.useVideo || !res.playUrl) {
-            applyVideoAndUI(curEpUrl, false, ep, titleStr, srcName, dubId);
+            applyVideoAndUI(curEpUrl, false, ep, titleStr, srcName, dubId, undefined, undefined, res.error);
             return;
           }
           const resolved = applyQualityMap(res.qualityMap, res.currentQuality, res.playUrl);
@@ -1737,6 +1753,7 @@
       onWatchdogReresolve: async () => {
         const embedUrl = core.origEpUrl;
         if (!embedUrl) return null;
+        setPlayerReconnecting(true);
         core.invalidateCache(embedUrl);
         const res = await core.resolve(embedUrl, false, 3);
         if (!res.useVideo || !res.playUrl) return null;
@@ -1755,6 +1772,7 @@
 
   function beginMediaCover(nextReleaseId?: string) {
     player.switching = true;
+    player.reconnecting = false;
     try { videoEl?.pause(); } catch { /* ignore */ }
     holdUpscaleForNewSource(0);
     player.upscaleCanvasOn = false;
@@ -1807,11 +1825,11 @@
         return;
       }
       setOrigEpisodeUrl(episode.url);
-      const { playUrl: pUrl, useVideo: uv, qualityMap, currentQuality: cq, skip } = await core.resolve(episode.url, episode.iframe);
+      const { playUrl: pUrl, useVideo: uv, qualityMap, currentQuality: cq, skip, error: resolveError } = await core.resolve(episode.url, episode.iframe);
       if (myGen !== episodeLoadGen) return;
       setSkipMarks(skip, { carry: true });
       const resolved = applyQualityMap(qualityMap, cq, pUrl, { resetManualLock: true });
-      applyVideoAndUI(resolved.url, uv, ep, titleStr, srcName, dubId, seekTime, initialPaused);
+      applyVideoAndUI(resolved.url, uv, ep, titleStr, srcName, dubId, seekTime, initialPaused, resolveError);
       refreshSourceNameFromApi();
       applyLobbyJoinSeekIfNeeded();
     }).catch(() => {
@@ -3352,13 +3370,13 @@
     player.loadState = 'loading';
     await rememberCdnsAndSync([raw]);
     try {
-      const { playUrl: pUrl, useVideo: uv, qualityMap, currentQuality: cq, skip } = await core.resolve(raw, false);
+      const { playUrl: pUrl, useVideo: uv, qualityMap, currentQuality: cq, skip, error: resolveError } = await core.resolve(raw, false);
       await rememberCdnsAndSync([pUrl, ...Object.values(qualityMap || {})]);
       const resolved = applyQualityMap(qualityMap, cq, pUrl, { resetManualLock: true });
       setSkipMarks(skip, { carry: false });
       player.loadState = 'ready';
       await tick();
-      applyVideoAndUI(resolved.url, uv, 1, watchState.title, watchState.sourceName, '');
+      applyVideoAndUI(resolved.url, uv, 1, watchState.title, watchState.sourceName, '', undefined, undefined, resolveError);
       if (uv) bindVideoElementListeners();
       showAndSchedule();
     } catch {
@@ -3756,12 +3774,12 @@
         }
 
         setOrigEpisodeUrl(episode.url);
-        const { playUrl: pUrl, useVideo: uv, qualityMap, currentQuality: cq, skip } = await core.resolve(episode.url, episode.iframe);
+        const { playUrl: pUrl, useVideo: uv, qualityMap, currentQuality: cq, skip, error: resolveError } = await core.resolve(episode.url, episode.iframe);
         const resolved = applyQualityMap(qualityMap, cq, pUrl, { resetManualLock: true });
         setSkipMarks(skip, { carry: true });
         player.loadState = 'ready';
         await tick();
-        applyVideoAndUI(resolved.url, uv, ep, watchState.title, watchState.sourceName, watchState.dubberId, initialSeek, initialJoinPaused);
+        applyVideoAndUI(resolved.url, uv, ep, watchState.title, watchState.sourceName, watchState.dubberId, initialSeek, initialJoinPaused, resolveError);
         if (initialSeek != null) rememberLobbyJoinSeek(initialSeek);
         refreshDubberNameFromApi();
         refreshSourceNameFromApi();
@@ -4555,23 +4573,26 @@
             {/if}
           </p>
           <div class="watch-page__player-error-actions">
-            <button
-              type="button"
-              class="watch-page__player-error-btn"
+            <UiV2Button
+              label="Попробовать снова"
+              size="md"
+              variant="chrome"
               onclick={retryCurrentPlayback}
-            >
-              Попробовать снова
-            </button>
+            />
             {#if playbackAlt}
-              <button
-                type="button"
-                class="watch-page__player-error-btn watch-page__player-error-btn--secondary"
+              <UiV2Button
+                label={playbackAltLabel(playbackAlt)}
+                size="md"
+                variant="primary"
                 onclick={acceptPlaybackAlt}
-              >
-                {playbackAltLabel(playbackAlt)}
-              </button>
+              />
             {/if}
           </div>
+        </div>
+      {:else if player.reconnecting && player.loadState !== 'loading' && !player.switching}
+        <div class="watch-page__player-reconnect" role="status" aria-live="polite">
+          <p class="watch-page__player-reconnect-title">Переподключение…</p>
+          <p class="watch-page__player-reconnect-hint">Соединение нестабильно — продолжаем с того же места</p>
         </div>
       {/if}
 
