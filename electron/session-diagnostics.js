@@ -14,7 +14,10 @@ const zlib = require('zlib');
 const MAX_ENTRIES = 8_000;
 const CONSOLE_LEVELS = ['debug', 'info', 'warn', 'error'];
 const DIAG_DIR_NAME = 'diagnostics';
-const LIVE_LOG_NAME = 'live.jsonl';
+const LEGACY_LIVE_NAME = 'live.jsonl';
+const CURRENT_POINTER = 'current.txt';
+/** Keep recent dated session files; older ones are removed. */
+const MAX_SESSION_FILES = 40;
 
 /** @type {Array<Record<string, unknown>>} */
 let entries = [];
@@ -52,31 +55,90 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function ensureLogPaths() {
-  if (logsDir && liveLogFile) return { dir: logsDir, file: liveLogFile };
+function sessionStamp(date = new Date()) {
+  return date.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+}
+
+function writeReadme(dir) {
+  const marker = path.join(dir, 'README.txt');
+  try {
+    fs.writeFileSync(
+      marker,
+      [
+        'AnixApp — папка диагностики',
+        '',
+        'live-YYYY-MM-DDTHH-mm-ss.jsonl  — журнал одной сессии запуска',
+        `${CURRENT_POINTER}                 — имя текущего файла сессии`,
+        '',
+        'При каждом запуске (и после «Очистить») создаётся новый файл.',
+        'Старые сессии не затираются — после краша их можно открыть снова.',
+        'Хранятся последние ~40 файлов live-*.jsonl.',
+        '',
+        'ZIP-архивы пользователь сохраняет вручную (по умолчанию в «Документы»).',
+        'Токены и пароли в логах маскируются.',
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+  } catch { /* ignore */ }
+}
+
+function writeCurrentPointer(dir, filePath) {
+  try {
+    fs.writeFileSync(path.join(dir, CURRENT_POINTER), `${path.basename(filePath)}\n`, 'utf8');
+  } catch { /* ignore */ }
+}
+
+function migrateLegacyLive(dir) {
+  const legacy = path.join(dir, LEGACY_LIVE_NAME);
+  try {
+    if (!fs.existsSync(legacy)) return;
+    const st = fs.statSync(legacy);
+    if (!st.isFile() || st.size === 0) {
+      fs.unlinkSync(legacy);
+      return;
+    }
+    const stamped = path.join(dir, `live-${sessionStamp(st.mtime)}-legacy.jsonl`);
+    fs.renameSync(legacy, stamped);
+  } catch { /* ignore */ }
+}
+
+function pruneOldSessions(dir) {
+  try {
+    const files = fs.readdirSync(dir)
+      .filter((n) => /^live-.+\.jsonl$/i.test(n))
+      .map((name) => {
+        const full = path.join(dir, name);
+        let mtime = 0;
+        try { mtime = fs.statSync(full).mtimeMs; } catch { /* ignore */ }
+        return { name, full, mtime };
+      })
+      .sort((a, b) => b.mtime - a.mtime);
+    for (const f of files.slice(MAX_SESSION_FILES)) {
+      try { fs.unlinkSync(f.full); } catch { /* ignore */ }
+    }
+  } catch { /* ignore */ }
+}
+
+function startNewSessionFile() {
   try {
     logsDir = path.join(app.getPath('userData'), DIAG_DIR_NAME);
     fs.mkdirSync(logsDir, { recursive: true });
-    liveLogFile = path.join(logsDir, LIVE_LOG_NAME);
-    const marker = path.join(logsDir, 'README.txt');
-    if (!fs.existsSync(marker)) {
-      fs.writeFileSync(
-        marker,
-        [
-          'AnixApp — папка диагностики',
-          '',
-          `${LIVE_LOG_NAME}  — текущий журнал (JSONL, по строке на событие)`,
-          'ZIP-архивы пользователь сохраняет вручную (по умолчанию в «Документы»).',
-          'Токены и пароли в логах маскируются.',
-          '',
-        ].join('\n'),
-        'utf8',
-      );
-    }
+    migrateLegacyLive(logsDir);
+    writeReadme(logsDir);
+    liveLogFile = path.join(logsDir, `live-${sessionStamp()}.jsonl`);
+    fs.writeFileSync(liveLogFile, '', 'utf8');
+    writeCurrentPointer(logsDir, liveLogFile);
+    pruneOldSessions(logsDir);
   } catch (err) {
-    console.error('[diagnostics] ensureLogPaths failed', err);
+    console.error('[diagnostics] startNewSessionFile failed', err);
   }
   return { dir: logsDir, file: liveLogFile };
+}
+
+function ensureLogPaths() {
+  if (logsDir && liveLogFile) return { dir: logsDir, file: liveLogFile };
+  return startNewSessionFile();
 }
 
 function appendToLiveFile(entry) {
@@ -86,14 +148,6 @@ function appendToLiveFile(entry) {
   writeChain = writeChain
     .then(() => fs.promises.appendFile(file, line, 'utf8'))
     .catch(() => { /* ignore disk errors */ });
-}
-
-function truncateLiveFile() {
-  const { file } = ensureLogPaths();
-  if (!file) return;
-  writeChain = writeChain
-    .then(() => fs.promises.writeFile(file, '', 'utf8'))
-    .catch(() => { /* ignore */ });
 }
 
 function getPaths() {
@@ -432,9 +486,8 @@ function clear() {
   entries = [];
   recentNetErrors.clear();
   seq = 0;
-  truncateLiveFile();
-  // Don't push/broadcast a system row here — UI reloads via diagnostics:get.
-  // A broadcast + get race caused duplicate Svelte each keys.
+  // New dated file — previous session logs stay on disk (crash-safe).
+  startNewSessionFile();
   return { ok: true, count: 0 };
 }
 

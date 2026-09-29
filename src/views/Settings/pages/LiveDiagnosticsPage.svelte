@@ -213,7 +213,8 @@
       // Drop any live events that raced during clear, then snapshot once.
       pending = [];
       await loadInitial();
-      setFeedback('Буфер очищен');
+      await refreshPaths();
+      setFeedback('Буфер очищен · новый файл сессии');
     } finally {
       muteLive = false;
       busy = false;
@@ -408,7 +409,7 @@
   {#if logPaths?.dir}
     <div class="diag-live__path" title={logPaths.file || logPaths.dir}>
       <div class="diag-live__path-text">
-        <span class="diag-live__path-label">Пишутся в</span>
+        <span class="diag-live__path-label">Сессия (по дате)</span>
         <code class="diag-live__path-value">{logPaths.file || logPaths.dir}</code>
       </div>
       <div class="diag-live__path-actions">
