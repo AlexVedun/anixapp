@@ -45,7 +45,7 @@
 <div class="uiv2-settings uiv2-settings--about">
   <div class="uiv2-settings__logo">
     <img
-      src="/logo/512x512.png"
+      src="./logo/512x512.png"
       alt=""
       class="uiv2-settings__logo-img"
       onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}

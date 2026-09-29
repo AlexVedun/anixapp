@@ -204,9 +204,9 @@
     <div class="tv-layout__rail-panel">
       <header class="tv-layout__brand">
         <span class="tv-layout__brand-leading">
-          <img class="tv-layout__logo-mark" src="/logo/LogoTv1.svg" alt="AnixApp" width="89" height="71" />
+          <img class="tv-layout__logo-mark" src="./logo/LogoTv1.svg" alt="AnixApp" width="89" height="71" />
         </span>
-        <img class="tv-layout__logo-wordmark" src="/logo/LogoTv2.svg" alt="" width="246" height="74" aria-hidden="true" />
+        <img class="tv-layout__logo-wordmark" src="./logo/LogoTv2.svg" alt="" width="246" height="74" aria-hidden="true" />
       </header>
 
       <div class="tv-layout__rail-body">

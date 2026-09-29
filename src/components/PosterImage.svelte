@@ -3,13 +3,13 @@
   import {
     toCdnProxyUrl,
     toPosterDisplayUrl,
-    buildCdnMirrorUrl,
     fromCdnProxyUrl,
     type PosterThumbPreset,
   } from '../utils/posterUrl';
 
-  const MAX_RETRIES = 12;
-  const RETRY_MS = [600, 1000, 1500, 2200, 3000, 4000, 5000, 6500, 8000, 9000, 10000, 12000];
+  /** Сколько ретраев на одном хосте до переключения на зеркало. */
+  const HOST_RETRIES = 2;
+  const RETRY_MS = [400, 900];
 
   interface Props {
     src?: string | null;
@@ -35,12 +35,35 @@
   let imgSrc = $state('');
   let retryTimer = $state<ReturnType<typeof setTimeout> | null>(null);
 
-  const normalizedSrc = $derived(
-    thumb
-      ? toPosterDisplayUrl(src?.trim() ?? '', thumb)
-      : toCdnProxyUrl(src?.trim() ?? ''),
-  );
-  const mirrorSrc = $derived(buildCdnMirrorUrl(fromCdnProxyUrl(src?.trim() ?? '')));
+  function proxiedSrc(raw: string, preferMirror: boolean): string {
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    const https = fromCdnProxyUrl(trimmed);
+    const target = preferMirror ? (buildCdnMirrorHttps(https) || https) : https;
+    if (thumb) return toPosterDisplayUrl(target, thumb);
+    return toCdnProxyUrl(target);
+  }
+
+  /** Только HTTPS зеркала (без повторного anix-cdn), чтобы не плодить mirror-mirror-*. */
+  function buildCdnMirrorHttps(url: string): string {
+    const source = fromCdnProxyUrl(url?.trim() ?? '');
+    if (!source) return '';
+    try {
+      const parsed = new URL(source.startsWith('http') ? source : `https://${source}`);
+      const host = parsed.hostname.replace(/^www\./, '');
+      if (host.startsWith('mirror-') || host.startsWith('mirror.')) return parsed.toString();
+      const parts = host.split('.');
+      parsed.hostname = parts.length > 2
+        ? `mirror-${parts[0]}.${parts.slice(1).join('.')}`
+        : `mirror.${host}`;
+      return parsed.toString();
+    } catch {
+      return '';
+    }
+  }
+
+  const normalizedSrc = $derived(proxiedSrc(src ?? '', false));
+  const mirrorSrc = $derived(proxiedSrc(src ?? '', true));
   const showImage = $derived(Boolean(normalizedSrc) && !failed && Boolean(imgSrc));
   const showFallback = $derived(!normalizedSrc || failed);
 
@@ -71,46 +94,59 @@
     loaded = true;
   }
 
+  function withBust(baseUrl: string, nextAttempt: number): string {
+    try {
+      const parsed = new URL(baseUrl, 'anix-cdn://asset/');
+      parsed.searchParams.set('_retry', String(nextAttempt));
+      parsed.searchParams.set('_t', String(Date.now()));
+      return parsed.toString();
+    } catch {
+      const sep = baseUrl.includes('?') ? '&' : '?';
+      return `${baseUrl}${sep}_retry=${nextAttempt}&_t=${Date.now()}`;
+    }
+  }
+
   function scheduleRetry(baseUrl: string, nextAttempt: number) {
-    const delay = RETRY_MS[nextAttempt - 1] ?? 3000;
+    const delay = RETRY_MS[nextAttempt - 1] ?? 900;
     clearRetryTimer();
     retryTimer = setTimeout(() => {
       retryTimer = null;
       if (!normalizedSrc) return;
-      // Preserve anix-cdn://…?u=… (do not strip query — that drops the real CDN URL).
-      try {
-        const parsed = new URL(baseUrl, 'anix-cdn://asset/');
-        parsed.searchParams.set('_retry', String(nextAttempt));
-        parsed.searchParams.set('_t', String(Date.now()));
-        imgSrc = parsed.toString();
-      } catch {
-        const sep = baseUrl.includes('?') ? '&' : '?';
-        imgSrc = `${baseUrl}${sep}_retry=${nextAttempt}&_t=${Date.now()}`;
-      }
+      imgSrc = withBust(baseUrl, nextAttempt);
     }, delay);
   }
 
   function handleError() {
     loaded = false;
 
-    const base = useMirror ? mirrorSrc : normalizedSrc;
-    if (!base) {
+    const primary = normalizedSrc;
+    const mirror = mirrorSrc;
+    if (!primary) {
       failed = true;
       return;
     }
 
-    if (attempt < MAX_RETRIES) {
+    // Быстрый failover на зеркало: не долбим 502 по 12 раз.
+    if (!useMirror && mirror && mirror !== primary) {
+      if (attempt >= HOST_RETRIES) {
+        useMirror = true;
+        attempt = 0;
+        imgSrc = mirror;
+        return;
+      }
       const nextAttempt = attempt + 1;
       attempt = nextAttempt;
-      scheduleRetry(base, nextAttempt);
+      scheduleRetry(primary, nextAttempt);
       return;
     }
 
-    if (!useMirror && mirrorSrc && mirrorSrc !== normalizedSrc) {
-      useMirror = true;
-      attempt = 0;
-      imgSrc = mirrorSrc;
-      return;
+    if (useMirror && mirror) {
+      if (attempt < HOST_RETRIES) {
+        const nextAttempt = attempt + 1;
+        attempt = nextAttempt;
+        scheduleRetry(mirror, nextAttempt);
+        return;
+      }
     }
 
     failed = true;

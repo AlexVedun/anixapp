@@ -24,6 +24,7 @@
   import { sendPlayerViewActive } from './services/lobby-ws';
   import { getPath, getSearchParams } from './router';
   import { captureActiveScroll, resetScrollAfterRouteChange } from './stores/view-state';
+  import { getSidebarDefaultNavHref } from './prefs';
   import { initTabNavigation, recordTabNavigation } from './stores/tab-navigation';
   import { initTheme, applyThemeById } from './services/themes';
   import { initAnixbackEndpoint } from './services/anixback-endpoint';
@@ -124,6 +125,8 @@
   isPlayerWindowOpen.subscribe(v => { _isPlayerOpen = v; });
 
   let bookmarksUserId = $state<number | undefined>(undefined);
+  /** Soft refresh: remount route content without reloading the Electron window. */
+  let pageRefreshKey = $state(0);
 
   function bookmarksUserFromRoute(route: string): number | undefined {
     const pathOnly = route.split('?')[0] || '';
@@ -313,6 +316,17 @@
     seedAnixHistory();
     const stopBookmarksSync = initBookmarksChangeSync();
     void initAnixbackEndpoint();
+
+    // Стартовый раздел из настроек навигации (только если открыли «корень»).
+    {
+      const bootPath = getPath();
+      const defaultHref = getSidebarDefaultNavHref();
+      if ((bootPath === '/' || bootPath === '') && defaultHref !== '/') {
+        replacePath(defaultHref);
+        path = getPath();
+        currentPath.set(path);
+      }
+    }
 
     if (!window.anixApi) {
       authReady.set(true);
@@ -809,6 +823,11 @@
     window.addEventListener('offline', onBrowserOffline);
     window.addEventListener('online', onBrowserOnline);
 
+    const onSoftRefresh = () => {
+      pageRefreshKey += 1;
+    };
+    window.addEventListener('anix:refresh-page', onSoftRefresh);
+
     return () => {
       window.removeEventListener('hashchange', onNav);
       window.removeEventListener('popstate', onNav);
@@ -818,6 +837,7 @@
       window.removeEventListener('keydown', handleZoomKeydown);
       window.removeEventListener('offline', onBrowserOffline);
       window.removeEventListener('online', onBrowserOnline);
+      window.removeEventListener('anix:refresh-page', onSoftRefresh);
       unsubAppScreen();
       unsubPlayerView();
       clearRetry();
@@ -1037,7 +1057,9 @@
     </TvLayout>
   {:else}
     <Layout currentPath={path} onConnectionRetry={checkAndShow}>
-      {@render appRoutes()}
+      {#key pageRefreshKey}
+        {@render appRoutes()}
+      {/key}
     </Layout>
   {/if}
 

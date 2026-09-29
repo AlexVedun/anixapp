@@ -114,10 +114,12 @@ function isAnixartCdnUrl(url) {
 function buildMirrorUrl(url) {
   try {
     const parsed = new URL(url);
-    const parts = parsed.hostname.split('.');
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host.startsWith('mirror-') || host.startsWith('mirror.')) return parsed.toString();
+    const parts = host.split('.');
     parsed.hostname = parts.length > 2
       ? `mirror-${parts[0]}.${parts.slice(1).join('.')}`
-      : `mirror.${parsed.hostname}`;
+      : `mirror.${host}`;
     return parsed.toString();
   } catch {
     return url;
@@ -344,31 +346,39 @@ async function fetchCdnAsset(url) {
             return { via: 'direct', value };
           })
           .catch((err) => {
-            if (isTimeoutErr(err)) originBlockedUntil = Date.now() + CDN_ROUTE_TTL_MS;
+            // Любой провал origin (502/DPI/dummy) — дальше предпочитаем зеркало/relay.
+            originBlockedUntil = Date.now() + (isTimeoutErr(err) ? CDN_ROUTE_TTL_MS : 45_000);
             throw err;
           }),
       );
     };
 
-    // Прямой CDN — основной путь. Зеркало/relay не стартуем параллельно:
-    // у части сетей они висят и забивают пул, из‑за этого обложки остаются пустыми.
+    // auto: сначала origin (быстро). После сбоя — зеркало/relay, иначе все 6 попыток
+    // долбят мёртвый s.anixmirai.com и отдают 502 в renderer.
     if (route === 'mirror' && !mirrorBlocked) {
       pushMirror();
       pushOrigin();
+      pushRelay();
+    } else if (route === 'direct' && !originBlocked) {
+      pushOrigin();
+      if (attempt > 0) {
+        pushMirror();
+        pushRelay();
+      }
     } else {
       pushOrigin();
-    }
-    if (originBlocked || route === 'mirror') {
-      pushRelay();
-      if (route !== 'mirror') pushMirror();
+      if (attempt > 0 || originBlocked) {
+        pushMirror();
+        pushRelay();
+      }
     }
 
     if (!raced.length) {
       originBlockedUntil = 0;
       mirrorBlockedUntil = 0;
       pushOrigin();
-      pushRelay();
       pushMirror();
+      pushRelay();
     }
 
     try {

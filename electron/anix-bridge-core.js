@@ -802,6 +802,35 @@ function createAnixBridgeCore(options = {}) {
       c.getClient().endpoints.settings.setPrivacyFriendRequests(state)),
     'anix:getLoginInfo': h((c) => c.getClient().endpoints.settings.getLoginInfo()),
     'anix:changeLogin': h((c, newLogin) => c.getClient().endpoints.settings.changeLogin(newLogin)),
+    'anix:changeEmail': h((c, data) => c.getClient().endpoints.settings.changeEmail(data)),
+    'anix:changeEmailResend': h((c, data) => c.getClient().endpoints.settings.changeEmailResend(data)),
+    'anix:changeEmailVerify': h((c, data) => c.getClient().endpoints.settings.changeEmailVerify(data)),
+    'anix:changePassword': h(async (c, data) => {
+      const res = await c.getClient().endpoints.settings.changePassword(data);
+      const token = typeof res?.token === 'string' ? res.token.trim() : '';
+      const ok = res && (res.code === 0 || res.code === undefined) && token;
+      if (ok) {
+        const cfg = c.loadConfig();
+        c.saveConfig({ token });
+        c.resetClient();
+        try {
+          const accountsStore = require('./lib/accounts-store');
+          const id = Number(cfg.profileId);
+          if (id > 0) {
+            accountsStore.upsertAccount({
+              id,
+              login: cfg.profileLogin,
+              avatar: cfg.profileAvatar,
+              token,
+              profileRaw: cfg.profileRaw,
+            });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      return res;
+    }),
     'anix:getBadges': h((c, page = 0) => c.getClient().endpoints.settings.getBadges(page)),
     'anix:setBadge': h((c, id) => c.getClient().endpoints.settings.setBadge(id)),
     'anix:removeBadge': h((c) => c.getClient().endpoints.settings.removeBadge()),

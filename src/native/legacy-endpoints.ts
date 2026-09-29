@@ -145,6 +145,23 @@ export function attachLegacyEndpoints<T extends AnyClient>(client: T): T {
       setPrivacyFriendRequests: (state: number) => pref.privacyFriendRequestsEdit({ permission: state }),
       getLoginInfo: () => pref.changeLoginInfo(),
       changeLogin: (newLogin: string) => pref.changeLogin({ login: newLogin }),
+      changeEmail: (data: {
+        current_email: string;
+        current_password: string;
+        new_email: string;
+      }) => pref.changeEmail(data),
+      changeEmailResend: (data: {
+        new_email: string;
+        current_email: string;
+        current_password: string;
+        hash: string;
+      }) => pref.changeEmailResend(data),
+      changeEmailVerify: (data: {
+        new_email: string;
+        code: number;
+        hash: string;
+      }) => pref.changeEmailVerify(data),
+      changePassword: (data: { current: string; new: string }) => pref.changePassword(data),
       getBadges: (page = 0) => ep.profileBadge.all(page),
       setBadge: (id: number) => ep.profileBadge.edit(id),
       removeBadge: () => ep.profileBadge.remove(),

@@ -1,6 +1,6 @@
 import { get, writable } from 'svelte/store';
 import { getPath, getSearchParams } from '../router';
-import { captureActiveScroll, resetScrollAfterRouteChange } from './view-state';
+import { captureActiveScroll, invalidateViewStatePrefix, resetScrollAfterRouteChange, blockViewStatePersist, unblockViewStatePersist } from './view-state';
 import {
   recordTabNavigation,
   prepareSidebarTabSwitch,
@@ -11,6 +11,7 @@ import {
 } from './tab-navigation';
 import { openProfileFromPath } from './user-profile';
 import { closeNotificationsModal, notificationsModalOpen } from './modals';
+import { clearOverviewCache } from '../utils/overviewCache';
 
 export const currentPath = writable<string>(getPath());
 
@@ -223,6 +224,22 @@ export function goForward(): void {
   window.dispatchEvent(ev);
   if (ev.defaultPrevented) return;
   window.history.forward();
+}
+
+/**
+ * Мягкое обновление текущего экрана: сброс кэша view-state и событие
+ * `anix:refresh-page` (контент перемонтируется, оболочка приложения остаётся).
+ */
+export function refreshCurrentPage(): void {
+  const path = getPath();
+  blockViewStatePersist();
+  invalidateViewStatePrefix(path);
+  if (path === '/overview' || path === '/schedule') {
+    clearOverviewCache();
+  }
+  window.dispatchEvent(new CustomEvent('anix:refresh-page', { detail: { path } }));
+  // После remount снова разрешаем сохранять состояние.
+  window.setTimeout(() => unblockViewStatePersist(), 800);
 }
 
 export function navigate(path: string, _state?: unknown): void {

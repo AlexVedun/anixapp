@@ -1,11 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { resolveCdnAssetUrl } from '../utils/posterUrl';
-  import { iconArrowLeft, iconArrowRight, iconBell, iconCalendar, iconUser, iconSettings, iconDownload, iconChevronDown, iconPlus, iconX } from './icons';
+  import { iconArrowLeft, iconArrowRight, iconRefreshCw, iconBell, iconCalendar, iconUser, iconSettings, iconDownload, iconChevronDown, iconPlus, iconX } from './icons';
   import { checkForUpdate, type UpdateInfo } from '../services/update-checker';
   import type { AppUpdateProgress } from '../types/electron';
   import { isAuthenticated, openLoginPrompt, applyAccountSessionChange } from '../stores/auth';
-  import { goBack, goForward } from '../stores/navigation';
+  import { goBack, goForward, refreshCurrentPage } from '../stores/navigation';
   import { notificationUnreadCount, refreshNotificationUnreadCount } from '../stores/notifications';
   import ConnectionBanner from './ConnectionBanner.svelte';
   import TitleBarSearchIsland from './TitleBarSearchIsland.svelte';
@@ -290,6 +290,27 @@
     });
   }
 
+  let isRefreshing = $state(false);
+
+  function handleRefresh() {
+    if (isRefreshing) return;
+    isRefreshing = true;
+    refreshCurrentPage();
+    window.setTimeout(() => { isRefreshing = false; }, 700);
+  }
+
+  function handleRefreshShortcut(event: KeyboardEvent) {
+    if (event.key !== 'F5' || event.defaultPrevented) return;
+    event.preventDefault();
+    event.stopPropagation();
+    void handleRefresh();
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', handleRefreshShortcut, true);
+    return () => window.removeEventListener('keydown', handleRefreshShortcut, true);
+  });
+
   function handleBack() { goBack(); }
   function handleForward() { goForward(); }
   function handleMinimize() { (window as any).electron?.window?.minimize(); }
@@ -336,6 +357,18 @@
         onclick={handleForward}
       >
         {@html iconArrowRight(16)}
+      </button>
+    </UiV2Tooltip>
+    <UiV2Tooltip text="Обновить (F5)">
+      <button
+        type="button"
+        class="titlebar__nav-btn"
+        class:titlebar__nav-btn--refreshing={isRefreshing}
+        id="titlebar-refresh"
+        aria-label="Обновить страницу"
+        onclick={() => void handleRefresh()}
+      >
+        {@html iconRefreshCw(16)}
       </button>
     </UiV2Tooltip>
   </div>

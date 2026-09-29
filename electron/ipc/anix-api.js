@@ -25,6 +25,7 @@ function register(deps) {
     config,
     app,
     logger,
+    resetAnixart,
   } = deps;
 
 // ——— Anixart API bridge (raw JSON responses for renderer) ———
@@ -1271,6 +1272,64 @@ ipcMain.handle('anix:changeLogin', async (_, newLogin) => {
     return res;
   } catch (err) {
     handleAnixError(err, 'changeLogin');
+  }
+});
+
+ipcMain.handle('anix:changeEmail', async (_, data) => {
+  try {
+    const client = getAnixart();
+    return await client.endpoints.settings.changeEmail(data);
+  } catch (err) {
+    handleAnixError(err, 'changeEmail');
+  }
+});
+
+ipcMain.handle('anix:changeEmailResend', async (_, data) => {
+  try {
+    const client = getAnixart();
+    return await client.endpoints.settings.changeEmailResend(data);
+  } catch (err) {
+    handleAnixError(err, 'changeEmailResend');
+  }
+});
+
+ipcMain.handle('anix:changeEmailVerify', async (_, data) => {
+  try {
+    const client = getAnixart();
+    return await client.endpoints.settings.changeEmailVerify(data);
+  } catch (err) {
+    handleAnixError(err, 'changeEmailVerify');
+  }
+});
+
+ipcMain.handle('anix:changePassword', async (_, data) => {
+  try {
+    const client = getAnixart();
+    const res = await client.endpoints.settings.changePassword(data);
+    const token = typeof res?.token === 'string' ? res.token.trim() : '';
+    if (res && (res.code === 0 || res.code === undefined) && token) {
+      config.saveConfig({ token });
+      if (typeof resetAnixart === 'function') resetAnixart();
+      try {
+        const accountsStore = require('../lib/accounts-store');
+        const cfg = config.getRawConfig?.() ?? {};
+        const id = Number(cfg.profileId);
+        if (id > 0) {
+          accountsStore.upsertAccount({
+            id,
+            login: cfg.profileLogin,
+            avatar: cfg.profileAvatar,
+            token,
+            profileRaw: cfg.profileRaw,
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return res;
+  } catch (err) {
+    handleAnixError(err, 'changePassword');
   }
 });
 

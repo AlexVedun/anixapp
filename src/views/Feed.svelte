@@ -2110,6 +2110,9 @@
     const onFeedScroll = () => scheduleFeedScrollStamp();
     scrollEl?.addEventListener('scroll', onFeedScroll, { passive: true });
 
+    const onRefreshPage = () => {
+      void reload();
+    };
     const onFeedSearch = ((e: CustomEvent<{ q?: string }>) => {
       applyFeedSearchFromRoute(e.detail?.q);
       scrollFeedToTop();
@@ -2131,6 +2134,7 @@
       stampCurrentFeedScroll();
     };
 
+    window.addEventListener('anix:refresh-page', onRefreshPage);
     window.addEventListener('anix:feed-search', onFeedSearch);
     window.addEventListener('anix:navigate', onNavigate);
     window.addEventListener('anix:beforeNavigate', onBeforeNavigate);
@@ -2321,8 +2325,9 @@
         clearTimeout(feedScrollStampTimer);
         feedScrollStampTimer = null;
       }
-      window.removeEventListener('anix:feed-search', onFeedSearch);
-      window.removeEventListener('anix:navigate', onNavigate);
+    window.removeEventListener('anix:refresh-page', onRefreshPage);
+    window.removeEventListener('anix:feed-search', onFeedSearch);
+    window.removeEventListener('anix:navigate', onNavigate);
       window.removeEventListener('anix:beforeNavigate', onBeforeNavigate);
       window.removeEventListener('anix:beforeHistoryTravel', onBeforeHistoryTravel);
       window.removeEventListener('popstate', onFeedPopState);

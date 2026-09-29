@@ -596,6 +596,14 @@
   &:active {
     transform: scale(0.92);
   }
+
+  &--refreshing :global(svg) {
+    animation: titlebar-refresh-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes titlebar-refresh-spin {
+  to { transform: rotate(360deg); }
 }
 
 // ——— Search trigger ———

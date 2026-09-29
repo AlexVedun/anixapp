@@ -301,10 +301,14 @@ export function buildCdnMirrorUrl(url: string): string {
   if (!source) return '';
   try {
     const parsed = new URL(source);
-    const parts = parsed.hostname.split('.');
+    const host = parsed.hostname.replace(/^www\./, '');
+    if (host.startsWith('mirror-') || host.startsWith('mirror.')) {
+      return toCdnProxyUrl(parsed.toString());
+    }
+    const parts = host.split('.');
     parsed.hostname = parts.length > 2
       ? `mirror-${parts[0]}.${parts.slice(1).join('.')}`
-      : `mirror.${parsed.hostname}`;
+      : `mirror.${host}`;
     return toCdnProxyUrl(parsed.toString());
   } catch {
     return '';

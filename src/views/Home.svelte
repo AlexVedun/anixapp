@@ -47,6 +47,8 @@
     beginScrollRestore,
     logViewStateRestore,
     logViewStateMiss,
+    removeViewState,
+    isViewStatePersistBlocked,
     type ViewStateEntry,
   } from '../stores/view-state';
 
@@ -418,6 +420,21 @@
     }
   }
 
+  function forceRefreshHome() {
+    for (const tabId of HOME_TAB_IDS) {
+      removeViewState(HOME_VIEW_KEY(tabId));
+    }
+    resetList();
+    errorMsg = '';
+    void loadAnnouncements();
+    if (activeTab === 'my' && !isHomeCustomTabConfigured(customTabData)) {
+      loadState = 'unconfigured';
+      return;
+    }
+    loadState = 'loading';
+    void loadPage();
+  }
+
   function onLayoutChanged() {
     items = [...items];
   }
@@ -430,9 +447,11 @@
     window.addEventListener('anix:beforeNavigate', onBeforeNavigate);
     window.addEventListener('anix:cardLayoutChanged', onLayoutChanged);
     window.addEventListener('anix:homeCustomTabChanged', onHomeCustomTabChangedEvent);
+    window.addEventListener('anix:refresh-page', forceRefreshHome);
     void loadAnnouncements();
 
-    const cached = findBestHomeCache();
+    // Soft refresh remount: не поднимать stale snapshot из кэша.
+    const cached = isViewStatePersistBlocked() ? null : findBestHomeCache();
     if (cached?.data && cached.data.items.length > 0) {
       activeTab = cached.data.activeTab;
       applyHomeSnapshot(cached.data);
@@ -462,6 +481,7 @@
 
   onDestroy(() => {
     window.removeEventListener('anix:beforeNavigate', onBeforeNavigate);
+    window.removeEventListener('anix:refresh-page', forceRefreshHome);
     unregisterScrollKey?.();
     unregisterScrollKey = null;
     saveViewStateData(HOME_VIEW_KEY(activeTab), homeSnapshot());

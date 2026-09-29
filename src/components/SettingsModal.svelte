@@ -49,7 +49,7 @@
   };
 
   const MENU_ROWS: { tab: SettingsTab; title: string; sub: string; section?: string }[] = [
-    { tab: 'appearance', title: 'Внешний вид', sub: 'Тема, масштаб и карточки', section: 'Настройки приложения' },
+    { tab: 'appearance', title: 'Внешний вид', sub: 'Тема, масштаб, навигация', section: 'Настройки приложения' },
     { tab: 'connection', title: 'Соединение', sub: 'Эндпоинт API' },
     { tab: 'behavior', title: 'Поведение', sub: 'Трей, ускорение, диагностика' },
     { tab: 'playback', title: 'Воспроизведение', sub: 'Апскейл, звук и горячие клавиши' },

@@ -12,6 +12,7 @@
   import { getCardLayout, setCardLayout, type CardLayout } from '../../../prefs';
 
   import ZoomScaleSlider from '../../../components/ZoomScaleSlider.svelte';
+  import NavigationSettingsSection from '../../../components/settings/NavigationSettingsSection.svelte';
   import { DEFAULT_ZOOM, normalizeZoom, type ZoomLevel } from '../../../utils/zoom';
 
   let cardLayout = $state<CardLayout>(getCardLayout());
@@ -232,4 +233,6 @@
       </button>
     </div>
   </section>
+
+  <NavigationSettingsSection />
 </div>

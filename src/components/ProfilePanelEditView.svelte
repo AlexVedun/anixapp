@@ -11,12 +11,14 @@
   import ProfilePanelHealthView from './ProfilePanelHealthView.svelte';
   import ProfilePanelHiddenChannelsView from './ProfilePanelHiddenChannelsView.svelte';
   import ProfilePanelBlocklistView from './ProfilePanelBlocklistView.svelte';
+  import ProfilePanelChangeEmailView from './ProfilePanelChangeEmailView.svelte';
+  import ProfilePanelChangePasswordView from './ProfilePanelChangePasswordView.svelte';
   import { resolveBadgeImageUrl, resolveBadgeName, rememberBadgeCatalogEntries, enrichLockedBadgePreviews } from '../utils/badge';
   import { resolveJacksonRefs } from '../utils/jackson-refs';
   import { compressImageForUpload } from '../utils/compressImage';
   import BlogCreateModal from './feed/BlogCreateModal.svelte';
 
-  type EditScreen = 'menu' | 'status' | 'nickname' | 'social' | 'badge' | 'health' | 'hiddenChannels' | 'blocklist';
+  type EditScreen = 'menu' | 'status' | 'nickname' | 'social' | 'badge' | 'health' | 'hiddenChannels' | 'blocklist' | 'email' | 'password';
   type MediaPickerKind = 'avatar' | 'cover';
 
   interface LoginHistoryItem {
@@ -143,6 +145,7 @@
 
   let channelId = $state<number | null>(null);
   let hasCover = $state(false);
+  let emailHint = $state('');
   let avatarBanned = $state(false);
   let mediaBusy = $state(false);
   let avatarInputEl = $state<HTMLInputElement | undefined>();
@@ -334,6 +337,8 @@
       case 'health': return 'Здоровье аккаунта';
       case 'hiddenChannels': return 'Скрытые каналы';
       case 'blocklist': return 'Блоклист';
+      case 'email': return 'Изменить Email';
+      case 'password': return 'Изменить пароль';
       default: return 'Редактирование';
     }
   });
@@ -676,6 +681,11 @@
       selectedThemeId = Number(settings.selected_theme_id ?? 1) || 1;
 
       channelId = Number(settings.channel_id ?? 0) || null;
+      emailHint = String(
+        (settings as { email_hint?: string; emailHint?: string }).email_hint
+          ?? (settings as { emailHint?: string }).emailHint
+          ?? '',
+      ).trim();
       avatarBanned = !!(settings.is_change_avatar_banned);
 
       const badge = settings.badge as BadgeItem | null | undefined;
@@ -1310,11 +1320,11 @@
         <span class="profile-panel__edit-row-title">Здоровье аккаунта</span>
         <span class="profile-panel__edit-row-sub">История нарушений и ограничений</span>
       </button>
-      <button type="button" class="profile-panel__edit-row" onclick={soon}>
+      <button type="button" class="profile-panel__edit-row" onclick={() => (screen = 'email')}>
         <span class="profile-panel__edit-row-title">Изменить Email</span>
         <span class="profile-panel__edit-row-sub">Изменить Email учетной записи</span>
       </button>
-      <button type="button" class="profile-panel__edit-row" onclick={soon}>
+      <button type="button" class="profile-panel__edit-row" onclick={() => (screen = 'password')}>
         <span class="profile-panel__edit-row-title">Изменить пароль</span>
         <span class="profile-panel__edit-row-sub">Изменить пароль учетной записи</span>
       </button>
@@ -1364,6 +1374,10 @@
     </div>
   {:else if screen === 'health'}
     <ProfilePanelHealthView {avatarUrl} />
+  {:else if screen === 'email'}
+    <ProfilePanelChangeEmailView emailHint={emailHint} onDone={goMenu} />
+  {:else if screen === 'password'}
+    <ProfilePanelChangePasswordView onDone={goMenu} />
   {:else if screen === 'hiddenChannels'}
     <ProfilePanelHiddenChannelsView />
   {:else if screen === 'blocklist'}
