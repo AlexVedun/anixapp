@@ -375,18 +375,6 @@ declare global {
       composerReadyToClose?: () => void;
       composerPublished?: (data: { articleId?: number; channelId?: number } | null) => void;
       composerDraftsChanged?: () => void;
-      // Logging (diagnostics)
-      logRenderer?: (entry: { level?: string; ch?: string; msg?: string; data?: unknown }) => Promise<void>;
-      logGetSessions?: () => Promise<Array<{ id: string; ts: string }>>;
-      logGetSessionLog?: (sessionId: string, file: string, limit?: number) => Promise<Array<Record<string, unknown>>>;
-      logGetSystemInfo?: () => Promise<Record<string, unknown>>;
-      logCollectZip?: () => Promise<{ ok: boolean; path?: string; error?: string }>;
-      logOpenZip?: (path: string) => Promise<void>;
-      logOpenFolder?: () => Promise<void>;
-      logGetFolderPath?: () => Promise<string | null>;
-      logGetSessionDir?: () => Promise<string | null>;
-      logGetLobbyPath?: () => Promise<string | null>;
-      logLobbyLine?: (line: string) => Promise<void>;
       sendLobbyActionLogToPlayer?: (entry: Record<string, unknown>) => void;
     };
   }

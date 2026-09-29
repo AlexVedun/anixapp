@@ -1,7 +1,6 @@
 import './styles/main.scss';
 import { mount } from 'svelte';
 import App from './App.svelte';
-import { initRendererLogging } from './services/logger';
 import './services/lobby-action-log';
 import { installWindowFluo } from './fluo';
 import { initWebAnixApi } from './services/anix-api-web';
@@ -12,8 +11,6 @@ import { initWebGpuAvailability } from './utils/webgpu-availability.svelte';
 
 void import('flag-icons/css/flag-icons.min.css');
 
-// Init renderer-side logging before anything else
-initRendererLogging();
 installWindowFluo();
 
 if (isTvMode()) {

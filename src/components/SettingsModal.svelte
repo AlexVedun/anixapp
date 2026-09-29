@@ -189,7 +189,7 @@
               <h3 class="profile-panel__edit-section">Разработчик</h3>
               <button type="button" class="profile-panel__edit-row" onclick={() => openTab('developer')}>
                 <span class="profile-panel__edit-row-title">Разработчик</span>
-                <span class="profile-panel__edit-row-sub">Мосты, логи и UI Kit</span>
+                <span class="profile-panel__edit-row-sub">Мосты и UI Kit</span>
               </button>
             {/if}
 

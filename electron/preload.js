@@ -290,17 +290,6 @@ contextBridge.exposeInMainWorld('electron', {
   composerPublished: (data) => ipcRenderer.send('composer:published', data ?? null),
   composerDraftsChanged: () => ipcRenderer.send('composer:draftsChanged'),
   // Logging
-  logRenderer:      (entry) => ipcRenderer.invoke('log:renderer', entry),
-  logGetSessions:   ()      => ipcRenderer.invoke('log:getSessions'),
-  logGetSessionLog: (sessionId, file, limit) => ipcRenderer.invoke('log:getSessionLog', sessionId, file, limit),
-  logGetSystemInfo: ()      => ipcRenderer.invoke('log:getSystemInfo'),
-  logCollectZip:    ()      => ipcRenderer.invoke('log:collectZip'),
-  logOpenZip:       (p)     => ipcRenderer.invoke('log:openZip', p),
-  logOpenFolder:    ()      => ipcRenderer.invoke('log:openFolder'),
-  logGetFolderPath: ()      => ipcRenderer.invoke('log:getFolderPath'),
-  logGetSessionDir: ()      => ipcRenderer.invoke('log:getSessionDir'),
-  logGetLobbyPath:  ()      => ipcRenderer.invoke('log:getLobbyPath'),
-  logLobbyLine:     (line)  => ipcRenderer.invoke('log:lobbyLine', line),
   sendLobbyActionLogToPlayer: (entry) => ipcRenderer.send('lobby:actionLogToPlayer', entry),
 });
 
