@@ -641,6 +641,7 @@
       dismissSkipUiOnly();
       try { videoEl?.pause(); } catch { /* ignore */ }
       player.switching = true;
+      showAndSchedule();
       goToEpisode(target);
       return;
     }
@@ -843,17 +844,25 @@
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     player.overlayVisible = true;
   }
+
+  /** Пока открыты поповеры / авто-скип — хром нельзя гасить. */
+  function chromeIdleBlocked(): boolean {
+    if (popoverType != null) return true;
+    if (skipPromptVisible && skipAutoPref === 'auto') return true;
+    return false;
+  }
+
   function scheduleHide() {
-    if (popoverType != null) return; // не гасим интерфейс, пока открыты «Серии» / «Озвучка»
-    if (skipPromptVisible && skipAutoPref === 'auto') {
+    if (chromeIdleBlocked()) {
       player.overlayVisible = true;
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       return;
     }
     if (idleTimer) clearTimeout(idleTimer);
     idleTimer = setTimeout(() => { player.overlayVisible = false; idleTimer = null; }, IDLE_MS);
   }
   function hideNow() {
-    if (popoverType != null) return; // не гасим, пока открыты поповеры
+    if (chromeIdleBlocked()) return;
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     player.overlayVisible = false;
   }
@@ -863,13 +872,6 @@
     if (e instanceof PointerEvent && e.pointerType === 'touch' && e.type === 'pointermove') return;
     showAndSchedule();
   }
-
-  $effect(() => {
-    if (popoverType != null) {
-      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
-      player.overlayVisible = true;
-    }
-  });
 
   function bindCoreEls() {
     core.video = videoEl ?? null;
@@ -916,10 +918,12 @@
       player.loadState = 'ready';
       player.errorText = '';
       playbackAlt = null;
+      scheduleHide();
       return;
     }
     if (player.loadState === 'loading') player.loadState = 'ready';
     applyLobbyJoinSeekIfNeeded();
+    scheduleHide();
   }
 
   function mediaHasRenderableFrame(el: HTMLVideoElement | null | undefined): boolean {
@@ -2282,6 +2286,7 @@
         return;
       }
       fluo.setProgress(targetTime, { origin: 'user' });
+      showAndSchedule();
     }
   }
 
@@ -2954,6 +2959,19 @@
     return getSkipAutoPref(watchState.releaseId, skipPromptVisible);
   });
 
+  // Когда блокер (popover / авто-скип) снимается — снова запускаем таймер скрытия.
+  $effect(() => {
+    const blocked = chromeIdleBlocked();
+    if (blocked) {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+      player.overlayVisible = true;
+      return;
+    }
+    if (player.overlayVisible && player.loadState === 'ready') {
+      scheduleHide();
+    }
+  });
+
   const skipToNextEpisode = $derived.by(() => {
     if (nextPreviewVisible || autoNextFired) return null;
     if (skipPrompt !== 'ending' || !endingIsAtEpisodeEnd(skipMarks?.ending, player.duration)) return null;
@@ -3078,6 +3096,7 @@
     watchCountdownPct = 0;
     if (remember) rememberSkipPref(kind, 'auto');
     if (goNext) {
+      showAndSchedule();
       if (goNext.alt && nextEpAltDub) {
         goToNextEpisodeInAltDub(nextEpAltDub);
         return;

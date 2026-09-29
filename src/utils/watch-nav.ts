@@ -1,7 +1,5 @@
-/** Открыть плеер: Electron-окно или встроенная страница /watch в браузере. */
+/** Открыть плеер внутри приложения (маршрут /watch), без отдельного окна. */
 import { navigate } from '../stores/navigation';
-import { isPlayerWindowOpen } from '../stores/modals';
-import { isTvMode } from '../platform/tv';
 
 export interface WatchLaunchParams {
   releaseId: string | number;
@@ -18,6 +16,17 @@ export function canOpenInAppPlayer(): boolean {
   return typeof window !== 'undefined' && (!!window.electron?.openPlayerWindow || !!window.anixApi);
 }
 
+export function isWatchRouteActive(): boolean {
+  try {
+    const hash = window.location.hash || '';
+    if (hash.startsWith('#/watch')) return true;
+    const path = window.location.pathname;
+    return path === '/watch' || path.endsWith('/watch');
+  } catch {
+    return false;
+  }
+}
+
 export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
   const payload = {
     releaseId: String(params.releaseId),
@@ -29,16 +38,7 @@ export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
     ...(params.dubberName != null && params.dubberName !== '' ? { dubberName: String(params.dubberName) } : {}),
   };
 
-  if (window.electron?.openPlayerWindow && !isTvMode()) {
-    return window.electron.openPlayerWindow({
-      ...payload,
-      ...(params.lobbyIdle ? { lobbyIdle: true } : {}),
-    }).then(() => {
-      isPlayerWindowOpen.set(true);
-    });
-  }
-
-  const alreadyWatching = isEmbeddedWebPlayer();
+  const alreadyWatching = isWatchRouteActive();
   const qs = new URLSearchParams({
     ...payload,
     ...(params.lobbyIdle ? { lobbyIdle: '1' } : {}),
@@ -50,16 +50,7 @@ export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
   return Promise.resolve();
 }
 
+/** Плеер на маршруте /watch (в т.ч. Electron main window). */
 export function isEmbeddedWebPlayer(): boolean {
-  return typeof window !== 'undefined' && !window.electron && getPathIsWatch();
-}
-
-function getPathIsWatch(): boolean {
-  try {
-    const hash = window.location.hash || '';
-    if (hash.startsWith('#/watch')) return true;
-    return window.location.pathname === '/watch' || window.location.pathname.endsWith('/watch');
-  } catch {
-    return false;
-  }
+  return typeof window !== 'undefined' && isWatchRouteActive();
 }
