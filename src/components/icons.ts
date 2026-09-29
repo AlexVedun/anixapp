@@ -11,6 +11,8 @@ import {
   ArrowUpDown,
   AudioLines,
   Bell,
+  BellPlus,
+  BellRing,
   Newspaper,
   Bold,
   Bookmark,
@@ -44,6 +46,7 @@ import {
   LayoutList,
   Link,
   List,
+  ListChecks,
   ListOrdered,
   Lock,
   LogOut,
@@ -321,6 +324,20 @@ export function iconBookmark(size = 20): string {
 /** Колокол (уведомления) */
 export function iconBell(size = 20): string {
   return toSvg(Bell, size);
+}
+
+/** Колокол с плюсом — уведомления выключены */
+export function iconBellPlus(size = 20): string {
+  return toSvg(BellPlus, size);
+}
+
+/** Колокол звонит — уведомления включены */
+export function iconBellRing(size = 20, accent = false): string {
+  return toSvg(BellRing, size, accent ? { color: '#f59e0b', stroke: '#f59e0b' } : {});
+}
+
+export function iconListChecks(size = 20): string {
+  return toSvg(ListChecks, size);
 }
 
 /** Лента / статьи */

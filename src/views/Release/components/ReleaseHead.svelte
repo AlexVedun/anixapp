@@ -7,6 +7,8 @@
     iconFlag,
     iconMessageCircle,
     iconChevronDown,
+    iconBellPlus,
+    iconBellRing,
   } from '../../../components/icons';
   import TitleInfoTrigger from '../../../components/TitleInfoTrigger.svelte';
   import ReleaseMetaInfoIcon from './ReleaseMetaInfoIcon.svelte';
@@ -38,10 +40,13 @@
     episodeAddedText: string | null;
     currentStatus:   ListStatusId | null;
     selectOptions:   SelectOption[];
+    notifyEnabled?:  boolean;
+    showNotify?:     boolean;
     onToggleFavorite: () => void;
     onWatch:          () => void;
     onSetStatus:      (v: string) => void;
     onToggleDesc:     () => void;
+    onOpenNotify?:    () => void;
     airDate?:          Snippet;
     /** TV: широкая шапка и кнопка статуса вместо Select */
     tvMode?:           boolean;
@@ -56,7 +61,10 @@
     noteHtml, descHtml, descClean, descNeedsTruncate, descCollapsed,
     metaInfoRows, playBtnText, playBtnDisabled, episodeAddedText,
     currentStatus, selectOptions,
+    notifyEnabled = false,
+    showNotify = false,
     onToggleFavorite, onWatch, onSetStatus, onToggleDesc,
+    onOpenNotify,
     airDate,
     tvMode = false,
     statusButtonLabel = 'В список',
@@ -183,6 +191,20 @@
         <span class="release-page__actions-chip-label">{favLabel}</span>
       {/if}
     </button>
+
+    {#if showNotify}
+      <button
+        type="button"
+        class="release-page__actions-chip release-page__actions-chip--notify{notifyEnabled ? ' release-page__actions-chip--notify-on' : ''}"
+        title={notifyEnabled ? 'Уведомления о сериях включены' : 'Настроить уведомления о сериях'}
+        aria-label={notifyEnabled ? 'Уведомления о сериях включены' : 'Настроить уведомления о сериях'}
+        onclick={() => onOpenNotify?.()}
+      >
+        <span class="release-page__actions-chip-icon">
+          {@html notifyEnabled ? iconBellRing(18, true) : iconBellPlus(18)}
+        </span>
+      </button>
+    {/if}
 
     <button
       type="button"

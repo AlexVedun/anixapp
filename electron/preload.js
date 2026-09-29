@@ -580,6 +580,16 @@ contextBridge.exposeInMainWorld('anixApi', {
     all: (page = 0) => ipcRenderer.invoke('anix:notificationsAll', page),
     count: () => ipcRenderer.invoke('anix:notificationsCount'),
     read: () => ipcRenderer.invoke('anix:notificationsRead'),
+    preference: {
+      my: () => ipcRenderer.invoke('anix:notificationPreferenceMy'),
+      edit: (type) => ipcRenderer.invoke('anix:notificationPreferenceEdit', type),
+      editStatus: (statuses) => ipcRenderer.invoke('anix:notificationPreferenceEditStatus', statuses),
+      editType: (typeIds) => ipcRenderer.invoke('anix:notificationPreferenceEditType', typeIds),
+      releaseTypes: (releaseId) => ipcRenderer.invoke('anix:notificationPreferenceReleaseTypes', releaseId),
+      editReleaseTypes: (releaseId, typeIds) =>
+        ipcRenderer.invoke('anix:notificationPreferenceEditReleaseTypes', releaseId, typeIds),
+      releases: (page = 0) => ipcRenderer.invoke('anix:notificationPreferenceReleases', page),
+    },
   },
 
   history: {

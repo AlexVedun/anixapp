@@ -747,6 +747,53 @@ function createAnixBridgeCore(options = {}) {
     'anix:notificationsAll': h((c, page = 0) => c.getClient().endpoints.notification.getNotifications(page)),
     'anix:notificationsCount': h((c) => c.getClient().endpoints.notification.countNotifications()),
     'anix:notificationsRead': h((c) => c.getClient().endpoints.notification.read()),
+    'anix:notificationPreferenceMy': h((c) => c.getClient().endpoints.notificationPreference.my()),
+    'anix:notificationPreferenceEdit': h((c, type) =>
+      c.getClient().endpoints.notificationPreference.edit(String(type || ''))),
+    'anix:notificationPreferenceEditStatus': h(async (c, statuses) => {
+      const list = Array.isArray(statuses)
+        ? statuses.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+        : [];
+      try {
+        return await c.getClient().endpoints.notificationPreference.editStatus({
+          profileStatusNotificationPreferences: list,
+        });
+      } catch (err) {
+        if (String(err?.message || err || '').includes('empty response')) return { code: 0 };
+        throw err;
+      }
+    }),
+    'anix:notificationPreferenceEditType': h(async (c, typeIds) => {
+      const list = Array.isArray(typeIds)
+        ? typeIds.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+        : [];
+      try {
+        return await c.getClient().endpoints.notificationPreference.editType({
+          profileTypeNotificationPreferences: list,
+        });
+      } catch (err) {
+        if (String(err?.message || err || '').includes('empty response')) return { code: 0 };
+        throw err;
+      }
+    }),
+    'anix:notificationPreferenceReleaseTypes': h((c, releaseId) =>
+      c.getClient().endpoints.notificationPreference.releaseTypes(Number(releaseId))),
+    'anix:notificationPreferenceEditReleaseTypes': h(async (c, releaseId, typeIds) => {
+      const list = Array.isArray(typeIds)
+        ? typeIds.map((n) => Number(n)).filter((n) => Number.isFinite(n))
+        : [];
+      try {
+        return await c.getClient().endpoints.notificationPreference.editReleaseTypes({
+          release_id: Number(releaseId),
+          profile_release_type_notification_preferences: list,
+        });
+      } catch (err) {
+        if (String(err?.message || err || '').includes('empty response')) return { code: 0 };
+        throw err;
+      }
+    }),
+    'anix:notificationPreferenceReleases': h((c, page = 0) =>
+      c.getClient().endpoints.notificationPreference.releases(Number(page) || 0)),
     'anix:history': h((c, page = 0) => c.getClient().endpoints.release.getHistory(page)),
     'anix:deleteFromHistory': h((c, releaseId) => c.getClient().endpoints.history.delete(releaseId)),
     'anix:addToHistory': h((c, releaseId, sourceId, episodePosition) =>

@@ -942,6 +942,93 @@ ipcMain.handle('anix:notificationsRead', async () => {
   }
 });
 
+ipcMain.handle('anix:notificationPreferenceMy', async () => {
+  try {
+    const client = getAnixart();
+    return await client.endpoints.notificationPreference.my();
+  } catch (err) {
+    handleAnixError(err, 'notificationPreferenceMy');
+  }
+});
+
+ipcMain.handle('anix:notificationPreferenceEdit', async (_, type) => {
+  try {
+    const client = getAnixart();
+    const t = String(type || '');
+    if (!t) throw new Error('type required');
+    return await client.endpoints.notificationPreference.edit(t);
+  } catch (err) {
+    handleAnixError(err, 'notificationPreferenceEdit');
+  }
+});
+
+ipcMain.handle('anix:notificationPreferenceEditStatus', async (_, statuses) => {
+  try {
+    const client = getAnixart();
+    const list = Array.isArray(statuses) ? statuses.map((n) => Number(n)).filter((n) => Number.isFinite(n)) : [];
+    // Android Retrofit body uses camelCase field names (no @JsonProperty on the request class).
+    return await client.endpoints.notificationPreference.editStatus({
+      profileStatusNotificationPreferences: list,
+    });
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    // Some Anixart preference POSTs return HTTP 200 with an empty body on success.
+    if (msg.includes('empty response')) return { code: 0 };
+    handleAnixError(err, 'notificationPreferenceEditStatus');
+  }
+});
+
+ipcMain.handle('anix:notificationPreferenceEditType', async (_, typeIds) => {
+  try {
+    const client = getAnixart();
+    const list = Array.isArray(typeIds) ? typeIds.map((n) => Number(n)).filter((n) => Number.isFinite(n)) : [];
+    return await client.endpoints.notificationPreference.editType({
+      profileTypeNotificationPreferences: list,
+    });
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    if (msg.includes('empty response')) return { code: 0 };
+    handleAnixError(err, 'notificationPreferenceEditType');
+  }
+});
+
+ipcMain.handle('anix:notificationPreferenceReleaseTypes', async (_, releaseId) => {
+  try {
+    const client = getAnixart();
+    const id = Number(releaseId);
+    if (!Number.isFinite(id)) throw new Error('releaseId required');
+    return await client.endpoints.notificationPreference.releaseTypes(id);
+  } catch (err) {
+    handleAnixError(err, 'notificationPreferenceReleaseTypes');
+  }
+});
+
+ipcMain.handle('anix:notificationPreferenceEditReleaseTypes', async (_, releaseId, typeIds) => {
+  try {
+    const client = getAnixart();
+    const id = Number(releaseId);
+    if (!Number.isFinite(id)) throw new Error('releaseId required');
+    const list = Array.isArray(typeIds) ? typeIds.map((n) => Number(n)).filter((n) => Number.isFinite(n)) : [];
+    return await client.endpoints.notificationPreference.editReleaseTypes({
+      release_id: id,
+      profile_release_type_notification_preferences: list,
+    });
+  } catch (err) {
+    const msg = String(err?.message || err || '');
+    if (msg.includes('empty response')) return { code: 0 };
+    handleAnixError(err, 'notificationPreferenceEditReleaseTypes');
+  }
+});
+
+ipcMain.handle('anix:notificationPreferenceReleases', async (_, page = 0) => {
+  try {
+    const client = getAnixart();
+    return await client.endpoints.notificationPreference.releases(Number(page) || 0);
+  } catch (err) {
+    handleAnixError(err, 'notificationPreferenceReleases');
+  }
+});
+
 ipcMain.handle('anix:history', async (_, page = 0) => {
   try {
     const client = getAnixart();

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy, tick } from 'svelte';
+  import { get } from 'svelte/store';
   import { navigate } from '../../stores/navigation';
-  import { requireAuth } from '../../stores/auth';
+  import { requireAuth, isAuthenticated } from '../../stores/auth';
   import { openWatchModal } from '../../stores/modals';
   import { buildPosterUrl, buildScreenshotUrl, toPosterDisplayUrl } from '../../utils/posterUrl';
   import { setDiscordContext, refreshDiscordPresence } from '../../services/discord-presence';
@@ -32,6 +33,13 @@
   import { extractHistoryEpisodeInfo } from '../../utils/historyFormat';
   import UiV2ContentRetryOverlay from '../../components/uikit-v2/UiV2ContentRetryOverlay.svelte';
   import { headlineFromLoadError } from '../../utils/content-load-error';
+  import ReleaseEpisodeNotifyModal from '../../components/ReleaseEpisodeNotifyModal.svelte';
+  import {
+    parseNotificationPrefs,
+    parseReleaseTypeIds,
+    parseVoiceoverCatalog,
+    type VoiceoverTypeOption,
+  } from '../../utils/notification-preferences';
 
   interface Props { id: number; }
   let { id }: Props = $props();
@@ -47,6 +55,13 @@
   let currentStatus  = $state<ListStatusId | null>(null);
   let descCollapsed  = $state(true);
   let historyResume  = $state<{ episode: string; dubber: string } | null>(null);
+  let notifyCount = $state(0);
+  let notifyOpen = $state(false);
+  let notifyBusy = $state(false);
+  let notifySelected = $state<number[]>([]);
+  let notifyCatalog = $state<VoiceoverTypeOption[]>([]);
+  /** Колокольчик только в режиме «По выбранным релизам». */
+  let showNotifyBell = $state(false);
 
   function readResumeInfo(raw: Record<string, unknown> | null | undefined) {
     if (!raw) return { episode: '', dubber: '' };
@@ -176,6 +191,23 @@
   const isViewBlocked = $derived(!!(release?.is_view_blocked));
   const hasEpisodesReleased = $derived(typeof episodesReleased === 'number' && episodesReleased > 0);
   const releaseId    = $derived(release?.id as number | undefined);
+  const notifyEnabled = $derived(notifyCount > 0);
+
+  async function refreshNotifyBellVisibility() {
+    if (!get(isAuthenticated) || !window.anixApi?.notification?.preference?.my) {
+      showNotifyBell = false;
+      return;
+    }
+    try {
+      const data = await window.anixApi.notification.preference.my();
+      const prefs = parseNotificationPrefs(data);
+      showNotifyBell =
+        prefs.is_episode_notifications_enabled &&
+        prefs.is_release_type_notifications_enabled;
+    } catch {
+      showNotifyBell = false;
+    }
+  }
 
   const resumeInfo = $derived.by(() => {
     const fromRelease = readResumeInfo(release);
@@ -304,6 +336,61 @@
     }
   }
 
+  async function openNotifyModal() {
+    if (!window.anixApi?.notification?.preference || !requireAuth()) return;
+    notifyOpen = true;
+    notifyBusy = true;
+    try {
+      const [typesRaw, selectedRaw] = await Promise.all([
+        window.anixApi.type?.all?.(),
+        window.anixApi.notification.preference.releaseTypes(id),
+      ]);
+      notifyCatalog = parseVoiceoverCatalog(typesRaw);
+      notifySelected = parseReleaseTypeIds(selectedRaw);
+      const list = (selectedRaw as { profile_release_type_notification_preferences?: unknown })
+        ?.profile_release_type_notification_preferences;
+      if (Array.isArray(list)) {
+        const map = new Map(notifyCatalog.map((t) => [t.id, t]));
+        for (const entry of list) {
+          if (!entry || typeof entry !== 'object') continue;
+          const type = (entry as { type?: { id?: number; name?: string } }).type;
+          if (type?.id != null) {
+            map.set(Number(type.id), {
+              id: Number(type.id),
+              name: type.name || `Озвучка ${type.id}`,
+            });
+          }
+        }
+        notifyCatalog = Array.from(map.values());
+      }
+    } catch (err) {
+      errorMsg = String(err);
+    } finally {
+      notifyBusy = false;
+    }
+  }
+
+  async function saveNotifyTypes(typeIds: number[]) {
+    if (!window.anixApi?.notification?.preference || notifyBusy) return;
+    notifyBusy = true;
+    try {
+      await window.anixApi.notification.preference.editReleaseTypes(id, typeIds);
+      notifySelected = typeIds;
+      notifyCount = typeIds.length;
+      if (release) {
+        release = {
+          ...release,
+          profile_release_type_notification_preference_count: typeIds.length,
+        };
+      }
+      if (typeIds.length === 0) notifyOpen = false;
+    } catch (err) {
+      errorMsg = String(err);
+    } finally {
+      notifyBusy = false;
+    }
+  }
+
   async function syncListStateFromApi() {
     if (!window.anixApi || !id) return;
     try {
@@ -327,6 +414,9 @@
         isFavorite = !!(raw.is_favorite);
         if (typeof raw.favorites_count === 'number') favoritesCount = raw.favorites_count;
         currentStatus = numToStatusId(raw.profile_list_status as number | null | undefined);
+        if (typeof raw.profile_release_type_notification_preference_count === 'number') {
+          notifyCount = raw.profile_release_type_notification_preference_count;
+        }
       }
     } catch { /* ignore */ }
   }
@@ -358,7 +448,11 @@
       isFavorite     = !!(raw.is_favorite);
       favoritesCount = (raw.favorites_count ?? 0) as number;
       currentStatus  = numToStatusId(raw.profile_list_status as number | null | undefined);
+      notifyCount    = typeof raw.profile_release_type_notification_preference_count === 'number'
+        ? raw.profile_release_type_notification_preference_count
+        : 0;
       loadState      = 'ready';
+      void refreshNotifyBellVisibility();
 
       const posterVal = buildPosterUrl(
         typeof raw.poster === 'string' ? raw.poster :
@@ -429,10 +523,13 @@
         {isViewBlocked} {noteHtml} {descHtml} {descClean} {descNeedsTruncate} {descCollapsed}
         {metaInfoRows} {playBtnText} {playBtnDisabled} {episodeAddedText}
         {currentStatus} {selectOptions}
+        {notifyEnabled}
+        showNotify={showNotifyBell}
         onToggleFavorite={toggleFavorite}
         onWatch={handleWatch}
         onSetStatus={setStatus}
         onToggleDesc={() => { descCollapsed = !descCollapsed; }}
+        onOpenNotify={() => { void openNotifyModal(); }}
       >
         {#snippet airDate()}
           <ReleaseAirCalendar
@@ -488,3 +585,13 @@
   {/if}
   </div>
 </div>
+
+<ReleaseEpisodeNotifyModal
+  open={notifyOpen}
+  releaseId={id}
+  catalog={notifyCatalog}
+  selectedIds={notifySelected}
+  busy={notifyBusy}
+  onClose={() => { notifyOpen = false; }}
+  onSave={(ids) => saveNotifyTypes(ids)}
+/>

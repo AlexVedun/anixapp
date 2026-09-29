@@ -503,6 +503,20 @@ export interface AnixApi {
     all: (page?: number) => Promise<any>;
     count: () => Promise<any>;
     read: () => Promise<any>;
+    preference?: {
+      my: () => Promise<Record<string, unknown>>;
+      edit: (type: string) => Promise<unknown>;
+      editStatus: (statuses: number[]) => Promise<unknown>;
+      editType: (typeIds: number[]) => Promise<unknown>;
+      releaseTypes: (releaseId: number) => Promise<{
+        profile_release_type_notification_preferences?: Array<{
+          type?: { id?: number; name?: string };
+        }>;
+        [key: string]: unknown;
+      }>;
+      editReleaseTypes: (releaseId: number, typeIds: number[]) => Promise<unknown>;
+      releases: (page?: number) => Promise<{ content?: unknown[]; [key: string]: unknown }>;
+    };
   };
 
   history: {

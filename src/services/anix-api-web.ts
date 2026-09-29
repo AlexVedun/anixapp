@@ -224,6 +224,16 @@ function buildWebAnixApi(): AnixApi {
       all: (page = 0) => invoke('anix:notificationsAll', page),
       count: () => invoke('anix:notificationsCount'),
       read: () => invoke('anix:notificationsRead'),
+      preference: {
+        my: () => invoke('anix:notificationPreferenceMy'),
+        edit: (type) => invoke('anix:notificationPreferenceEdit', type),
+        editStatus: (statuses) => invoke('anix:notificationPreferenceEditStatus', statuses),
+        editType: (typeIds) => invoke('anix:notificationPreferenceEditType', typeIds),
+        releaseTypes: (releaseId) => invoke('anix:notificationPreferenceReleaseTypes', releaseId),
+        editReleaseTypes: (releaseId, typeIds) =>
+          invoke('anix:notificationPreferenceEditReleaseTypes', releaseId, typeIds),
+        releases: (page = 0) => invoke('anix:notificationPreferenceReleases', page),
+      },
     },
 
     history: {
