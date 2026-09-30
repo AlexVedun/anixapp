@@ -112,7 +112,9 @@
 
   function readNum(key: string, fallback: number): number {
     try {
-      const n = Number(localStorage.getItem(key));
+      const raw = localStorage.getItem(key);
+      if (raw == null || raw.trim() === '') return fallback;
+      const n = Number(raw);
       return Number.isFinite(n) ? n : fallback;
     } catch {
       return fallback;
@@ -286,7 +288,17 @@
     bossFighting = true;
     logoIdle = false;
     settingsBossFightLock.set(true);
+    // Первый бой / пустой LS раньше давали 0 — не тише 25%
+    if (musicVolume < 0.25) {
+      musicVolume = 0.25;
+      try {
+        localStorage.setItem(LS_VOL, String(musicVolume));
+      } catch {
+        /* ignore */
+      }
+    }
     const k = ensureKeygen();
+    k.setVolume(musicVolume);
     k.setAutoAdvance(false);
     void k.play({ track: BOSS_TRACK });
   }
