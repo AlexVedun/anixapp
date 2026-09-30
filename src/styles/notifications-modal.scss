@@ -519,6 +519,49 @@
   padding: 0.15rem 0 0.5rem;
 }
 
+.notifications-modal__list--skeleton {
+  padding-top: 0.35rem;
+}
+
+.notifications-modal__skel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  pointer-events: none;
+}
+
+.notifications-modal__skel-avatar {
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-right: 1rem;
+  margin-top: 0.15rem;
+  border-radius: 50%;
+}
+
+.notifications-modal__skel-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.25rem;
+}
+
+.notifications-modal__skel-line {
+  height: 0.72rem;
+  max-width: 100%;
+}
+
+.notifications-modal__skel-time {
+  width: 4.5rem;
+  height: 0.58rem;
+  margin-top: 0.15rem;
+  opacity: 0.85;
+}
+
 /* Android item_notification: 16dp sides, 10dp vertical, 56dp avatar + type badge */
 .notifications-modal__item {
   display: flex;

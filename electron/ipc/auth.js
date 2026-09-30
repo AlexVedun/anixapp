@@ -854,6 +854,29 @@ ipcMain.handle('anix:selfProfile', async () => {
       }
       if (data && data.profile) {
         appendLog('profile', { event: 'selfProfile_ok', profileId });
+        const p = data.profile;
+        const login = p.login ?? p.nickname ?? null;
+        const avatar = p.avatar ?? null;
+        config.saveConfig({
+          profileLogin: login,
+          profileAvatar: avatar,
+          profileRaw: p,
+        });
+        try {
+          const token = typeof cfg.token === 'string' ? cfg.token : '';
+          const id = Number(p.id ?? profileId) || 0;
+          if (id > 0 && token) {
+            accountsStore.upsertAccount({
+              id,
+              login,
+              avatar,
+              token,
+              profileRaw: p,
+            });
+          }
+        } catch {
+          /* ignore */
+        }
         return data;
       }
     } catch (err) {

@@ -972,7 +972,18 @@
           {/if}
 
           {#if loadState === 'loading'}
-            <div class="notifications-modal__state">Загрузка…</div>
+            <div class="notifications-modal__list notifications-modal__list--skeleton" aria-busy="true" aria-label="Загрузка уведомлений">
+              {#each Array(6) as _, i (i)}
+                <div class="notifications-modal__skel" aria-hidden="true">
+                  <span class="notifications-modal__skel-avatar uiv2-skeleton uiv2-skeleton--full"></span>
+                  <div class="notifications-modal__skel-main">
+                    <span class="notifications-modal__skel-line uiv2-skeleton uiv2-skeleton--sm" style="width:{i % 2 === 0 ? '92%' : '78%'}"></span>
+                    <span class="notifications-modal__skel-line uiv2-skeleton uiv2-skeleton--sm" style="width:{i % 3 === 0 ? '64%' : '54%'}"></span>
+                    <span class="notifications-modal__skel-time uiv2-skeleton uiv2-skeleton--sm"></span>
+                  </div>
+                </div>
+              {/each}
+            </div>
           {:else if loadState === 'no-api'}
             <p class="notifications-modal__state notifications-modal__state--error">API недоступно (только в Electron).</p>
           {:else if loadState === 'empty'}

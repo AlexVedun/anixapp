@@ -71,10 +71,13 @@
     }
   }
 
-  function accountAvatarIcon(avatar: string | null): string {
-    if (!avatar) return iconUser(18);
-    const url = resolveCdnAssetUrl(avatar);
-    return `<span class="titlebar__account-menu-avatar" style="background-image:url(${url})"></span>`;
+  function accountAvatarIcon(avatar: string | null, fallbackUrl: string | null = null): string {
+    const raw = (avatar && String(avatar).trim()) || (fallbackUrl && String(fallbackUrl).trim()) || '';
+    if (!raw) return iconUser(18);
+    const url = resolveCdnAssetUrl(raw) || raw;
+    if (!url) return iconUser(18);
+    const safe = url.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return `<img class="titlebar__account-menu-avatar" src="${safe}" alt="" draggable="false" />`;
   }
 
   const accountMenuItems = $derived.by((): UiV2PopupMenuItem[] => {
@@ -82,16 +85,17 @@
     const list = savedAccounts.length > 0
       ? savedAccounts
       : (authed && (profileLogin || profileId)
-          ? [{ id: profileId || 0, login: profileLogin || `ID ${profileId}`, avatar: null, active: true }]
+          ? [{ id: profileId || 0, login: profileLogin || `ID ${profileId}`, avatar: avatarUrl, active: true }]
           : []);
 
     for (const acc of list) {
+      const isActive = !!acc.active || (profileId > 0 && acc.id === profileId);
       items.push({
         id: `account:${acc.id}`,
         label: acc.login || `ID ${acc.id}`,
-        icon: accountAvatarIcon(acc.avatar),
+        icon: accountAvatarIcon(acc.avatar, isActive ? avatarUrl : null),
         type: 'radio',
-        checked: !!acc.active,
+        checked: isActive,
         keepOpen: false,
         trailingIcon: list.length > 1 ? iconX(14) : undefined,
         trailingLabel: list.length > 1 ? 'Выйти / удалить из списка' : undefined,
@@ -241,7 +245,11 @@
       }
     };
     window.addEventListener('app-update-progress', onProgress);
-    window.addEventListener('anix:profileUpdated', syncAvatarFromGlobalProfile as EventListener);
+    const onProfileUpdated = () => {
+      syncAvatarFromGlobalProfile();
+      void refreshSavedAccounts();
+    };
+    window.addEventListener('anix:profileUpdated', onProfileUpdated);
 
     const unsubUnread = notificationUnreadCount.subscribe((n) => {
       hasUnreadNotifications = n > 0;
@@ -267,7 +275,7 @@
 
     return () => {
       window.removeEventListener('app-update-progress', onProgress);
-      window.removeEventListener('anix:profileUpdated', syncAvatarFromGlobalProfile as EventListener);
+      window.removeEventListener('anix:profileUpdated', onProfileUpdated);
       unsubUnread();
       unsubAuth();
       clearInterval(unreadPoll);

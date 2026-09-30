@@ -951,12 +951,11 @@
 
 // Иконка-аватар в popup «Аккаунты» (HTML в UiV2PopupMenu item.icon, portal вне titlebar)
 .titlebar__account-menu-avatar {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
+  display: block;
+  width: 1.35rem;
+  height: 1.35rem;
   border-radius: 999px;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
   background-color: $color-surface-hover;
   flex-shrink: 0;
 }
