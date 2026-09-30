@@ -3,7 +3,7 @@
   import type { Snippet } from 'svelte';
   import { navigate } from '../stores/navigation';
   import { openAdminArea, restoreAdminSession, checkTeamMembership, isTeamMember } from '../stores/admin';
-  import { toggleNotificationsModal, openSettingsModal, settingsModalOpen } from '../stores/modals';
+  import { toggleNotificationsModal, openSettingsModal, settingsModalOpen, settingsBossFightLock } from '../stores/modals';
   import { isAuthenticated, requireAuth } from '../stores/auth';
   import { ensureProfileId } from '../utils/profile';
   import { bindSearchHotkeys } from '../search-controller';
@@ -313,6 +313,7 @@
   }
 
   function closeSettings(immediate = false) {
+    if ($settingsBossFightLock) return;
     if (!settingsVisible) return;
     if (!settingsActive && !immediate) return;
     settingsActive = false;
@@ -379,7 +380,13 @@
     const onKeyDown = (e: KeyboardEvent) => {
       // Профиль закрывается только крестиком или расписанием — Esc только для расписания
       if (e.key === 'Escape' && mediaPreviewOpen) return;
-      if (e.key === 'Escape' && settingsVisible && settingsActive) closeSettings();
+      if (e.key === 'Escape' && settingsVisible && settingsActive) {
+        if ($settingsBossFightLock) {
+          e.preventDefault();
+          return;
+        }
+        closeSettings();
+      }
       if (e.key === 'Escape' && scheduleVisible && scheduleActive) closeSchedule();
     };
     window.addEventListener('keydown', onKeyDown);
@@ -593,8 +600,10 @@
       type="button"
       class="schedule-panel-backdrop"
       class:schedule-panel-backdrop--open={scheduleActive || profileActive || settingsActive}
+      class:schedule-panel-backdrop--locked={$settingsBossFightLock && settingsActive}
       aria-label="Закрыть панель"
       onclick={() => {
+        if ($settingsBossFightLock && settingsActive) return;
         if (scheduleActive) closeSchedule();
         else if (profileActive) closeProfile();
         else if (settingsActive) closeSettings();

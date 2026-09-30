@@ -2847,6 +2847,22 @@
   font-variant-numeric: tabular-nums;
   color: var(--uiv2-fg-muted);
   white-space: nowrap;
+
+  &--badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.1rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
 }
 
 .uiv2-tooltip__desc {
@@ -3188,21 +3204,34 @@
 
 .uiv2-select__panel {
   position: fixed;
+  display: flex;
+  flex-direction: column;
   pointer-events: auto;
   max-height: min(16.5rem, calc(100vh - 20px));
-  overflow: auto;
+  overflow: hidden;
   border-radius: 10px;
-  padding: 0.35rem;
+  padding: 0;
   background: var(--uiv2-tooltip-bg, var(--uikit-v2-elevated));
   border: 0;
   box-shadow: var(--uiv2-chrome-shadow);
   color: var(--uikit-v2-text);
-  scrollbar-width: thin;
+}
+
+.uiv2-select__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  --uiv2-scroll-offset: 3px;
+  --uiv2-scroll-track-size: 6px;
+}
+
+.uiv2-select__scroll > .uiv2-scroll-area__v-track {
+  z-index: 2;
 }
 
 .uiv2-select__list {
   margin: 0;
-  padding: 0;
+  padding: 0.35rem;
   list-style: none;
 }
 

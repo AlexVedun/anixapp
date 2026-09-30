@@ -3,7 +3,7 @@
   import { onMount } from 'svelte';
   import { navigateSidebarTab, navigate } from '../stores/navigation';
   import { isSidebarTabActive } from '../stores/tab-navigation';
-  import { openSettingsModal, settingsModalOpen } from '../stores/modals';
+  import { openSettingsModal, settingsModalOpen, settingsBossFightLock } from '../stores/modals';
   import { requireAuth } from '../stores/auth';
   import {
     closeProfilePanel,
@@ -66,6 +66,7 @@
   }
 
   function closeSettings(immediate = false) {
+    if ($settingsBossFightLock) return;
     if (!settingsVisible) return;
     if (!settingsActive && !immediate) return;
     settingsActive = false;
@@ -262,8 +263,10 @@
       type="button"
       class="schedule-panel-backdrop"
       class:schedule-panel-backdrop--open={profileActive || settingsActive}
+      class:schedule-panel-backdrop--locked={$settingsBossFightLock && settingsActive}
       aria-label="Закрыть панель"
       onclick={() => {
+        if ($settingsBossFightLock && settingsActive) return;
         if (profileActive) closeProfile();
         else if (settingsActive) closeSettings();
       }}

@@ -272,7 +272,10 @@
               {/if}
             </span>
             {#if meta}
-              <span class="uiv2-tooltip__meta">{meta}</span>
+              <span
+                class="uiv2-tooltip__meta"
+                class:uiv2-tooltip__meta--badge={meta.trim().toLowerCase() === 'beta'}
+              >{meta}</span>
             {/if}
           </div>
         {/if}

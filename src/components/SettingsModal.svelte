@@ -2,7 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
   import Page from './Page.svelte';
-  import { settingsModalInitialTab, settingsModalLastTab } from '../stores/modals';
+  import { settingsModalInitialTab, settingsModalLastTab, settingsBossFightLock } from '../stores/modals';
   import AccountPage from '../views/Settings/pages/AccountPage.svelte';
   import AppearancePage from '../views/Settings/pages/AppearancePage.svelte';
   import ConnectionPage from '../views/Settings/pages/ConnectionPage.svelte';
@@ -10,6 +10,7 @@
   import PlaybackPage from '../views/Settings/pages/PlaybackPage.svelte';
   import DiscordRpcPage from '../views/Settings/pages/DiscordRpcPage.svelte';
   import AboutPage from '../views/Settings/pages/AboutPage.svelte';
+  import UpdatePage from '../views/Settings/pages/UpdatePage.svelte';
   import DebugPage from '../views/Settings/pages/DebugPage.svelte';
   import DeveloperPage from '../views/Settings/pages/DeveloperPage.svelte';
   import UiV2BackBar from './uikit-v2/UiV2BackBar.svelte';
@@ -35,6 +36,7 @@
     | 'behavior'
     | 'playback'
     | 'discord'
+    | 'update'
     | 'debug'
     | 'developer'
     | 'about';
@@ -46,6 +48,7 @@
     behavior: 'Поведение',
     playback: 'Воспроизведение',
     discord: 'Discord RPC',
+    update: 'Обновление',
     debug: 'Отладка',
     developer: 'Разработчик',
     about: 'О программе',
@@ -57,6 +60,7 @@
     { tab: 'behavior', title: 'Поведение', sub: 'Трей и ускорение' },
     { tab: 'playback', title: 'Воспроизведение', sub: 'Апскейл, звук и горячие клавиши' },
     { tab: 'discord', title: 'Discord RPC', sub: 'Статус в Discord' },
+    { tab: 'update', title: 'Обновление', sub: 'Новые и предыдущие версии' },
     { tab: 'debug', title: 'Отладка', sub: 'Логи консоли и сети' },
   ];
 
@@ -73,6 +77,14 @@
   let appVersion = $state('AnixApp');
   let componentsLine = $state('');
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
+  let bossLocked = $state(false);
+
+  $effect(() => {
+    const unsub = settingsBossFightLock.subscribe((v) => {
+      bossLocked = v;
+    });
+    return unsub;
+  });
 
   const backSegments = $derived(
     screen === 'menu'
@@ -86,6 +98,7 @@
   });
 
   function close() {
+    if (bossLocked) return;
     if (standalone) {
       if (closing) return;
       closing = true;
@@ -98,14 +111,17 @@
   }
 
   function goMenu() {
+    if (bossLocked) return;
     screen = 'menu';
   }
 
   function openTab(tab: SettingsTab) {
+    if (bossLocked) return;
     screen = tab;
   }
 
   function onHeadBack() {
+    if (bossLocked) return;
     if (screen === 'menu') close();
     else goMenu();
   }
@@ -114,6 +130,10 @@
     if (!standalone) return;
     if (e.key === 'Escape') {
       e.stopPropagation();
+      if (bossLocked) {
+        e.preventDefault();
+        return;
+      }
       close();
     }
   }
@@ -161,10 +181,16 @@
 </script>
 
 {#snippet panelBody()}
-  <div class="profile-panel" role="dialog" aria-modal="true" aria-label="Настройки приложения">
-    <header class="profile-panel__chrome">
+  <div
+    class="profile-panel"
+    class:profile-panel--boss-lock={bossLocked}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Настройки приложения"
+  >
+    <header class="profile-panel__chrome" aria-hidden={bossLocked}>
       <div class="profile-panel__close">
-        <UiV2RoundButton label="Закрыть" onclick={close}>
+        <UiV2RoundButton label="Закрыть" onclick={close} disabled={bossLocked}>
           {@html iconX(18)}
         </UiV2RoundButton>
       </div>
@@ -172,7 +198,7 @@
 
     <Page scrollId="settings-panel" extraClass="profile-panel__page" noPadding>
       <div class="profile-panel__edit-view">
-        <header class="profile-panel__friends-head">
+        <header class="profile-panel__friends-head" aria-hidden={bossLocked}>
           <UiV2BackBar segments={backSegments} onBack={onHeadBack} />
         </header>
 
@@ -231,6 +257,8 @@
               <PlaybackPage />
             {:else if screen === 'discord'}
               <DiscordRpcPage />
+            {:else if screen === 'update'}
+              <UpdatePage />
             {:else if screen === 'debug'}
               <DebugPage />
             {:else if screen === 'developer'}
@@ -251,7 +279,9 @@
     class="schedule-panel-backdrop"
     class:schedule-panel-backdrop--open={sheetOpen}
     class:schedule-panel-backdrop--flush-top={flushTop}
+    class:schedule-panel-backdrop--locked={bossLocked}
     aria-label="Закрыть настройки"
+    disabled={bossLocked}
     onclick={close}
   ></button>
 

@@ -1,5 +1,7 @@
-/** Открыть плеер внутри приложения (маршрут /watch), без отдельного окна. */
+/** Запуск плеера: отдельное окно в Electron, иначе маршрут /watch. */
 import { navigate } from '../stores/navigation';
+import { isPlayerWindowOpen } from '../stores/modals';
+import { isTvMode } from '../platform/tv';
 
 export interface WatchLaunchParams {
   releaseId: string | number;
@@ -10,6 +12,14 @@ export interface WatchLaunchParams {
   dubberId?: string | number;
   dubberName?: string;
   lobbyIdle?: boolean;
+  localFile?: string;
+  externalUrl?: string;
+  referer?: string;
+  pageUrl?: string;
+  cookies?: string;
+  currentTime?: number;
+  paused?: boolean;
+  applyRoomPlayback?: boolean;
 }
 
 export function canOpenInAppPlayer(): boolean {
@@ -27,8 +37,13 @@ export function isWatchRouteActive(): boolean {
   }
 }
 
-export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
-  const payload = {
+/** Плеер на маршруте /watch (в т.ч. встроенный web/TV). */
+export function isEmbeddedWebPlayer(): boolean {
+  return typeof window !== 'undefined' && isWatchRouteActive();
+}
+
+function toPlayerPayload(params: WatchLaunchParams) {
+  return {
     releaseId: String(params.releaseId),
     sourceId: String(params.sourceId),
     ep: String(params.ep),
@@ -36,11 +51,30 @@ export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
     sourceName: params.sourceName,
     ...(params.dubberId != null && params.dubberId !== '' ? { dubberId: String(params.dubberId) } : {}),
     ...(params.dubberName != null && params.dubberName !== '' ? { dubberName: String(params.dubberName) } : {}),
+    ...(params.lobbyIdle ? { lobbyIdle: true } : {}),
+    ...(params.localFile ? { localFile: params.localFile } : {}),
+    ...(params.externalUrl ? { externalUrl: params.externalUrl } : {}),
+    ...(params.referer ? { referer: params.referer } : {}),
+    ...(params.pageUrl ? { pageUrl: params.pageUrl } : {}),
+    ...(params.cookies ? { cookies: params.cookies } : {}),
+    ...(typeof params.currentTime === 'number' ? { currentTime: params.currentTime } : {}),
+    ...(params.paused != null ? { paused: params.paused } : {}),
+    ...(params.applyRoomPlayback ? { applyRoomPlayback: true } : {}),
   };
+}
 
+/** Открыть плеер внутри приложения (маршрут /watch), без отдельного окна. */
+export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
+  const payload = toPlayerPayload(params);
   const alreadyWatching = isWatchRouteActive();
   const qs = new URLSearchParams({
-    ...payload,
+    releaseId: payload.releaseId,
+    sourceId: payload.sourceId,
+    ep: payload.ep,
+    title: payload.title,
+    sourceName: payload.sourceName,
+    ...(payload.dubberId ? { dubberId: payload.dubberId } : {}),
+    ...(payload.dubberName ? { dubberName: payload.dubberName } : {}),
     ...(params.lobbyIdle ? { lobbyIdle: '1' } : {}),
   });
   navigate(`/watch?${qs.toString()}`);
@@ -50,7 +84,15 @@ export function openInAppPlayer(params: WatchLaunchParams): Promise<void> {
   return Promise.resolve();
 }
 
-/** Плеер на маршруте /watch (в т.ч. Electron main window). */
-export function isEmbeddedWebPlayer(): boolean {
-  return typeof window !== 'undefined' && isWatchRouteActive();
+/**
+ * Desktop Electron → отдельное окно плеера.
+ * TV / web без openPlayerWindow → встроенный /watch.
+ */
+export async function launchPlayer(params: WatchLaunchParams): Promise<void> {
+  if (!isTvMode() && window.electron?.openPlayerWindow) {
+    await window.electron.openPlayerWindow(toPlayerPayload(params));
+    isPlayerWindowOpen.set(true);
+    return;
+  }
+  await openInAppPlayer(params);
 }

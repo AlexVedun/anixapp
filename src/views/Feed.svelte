@@ -2470,6 +2470,7 @@
         {/if}
         {#if showDateFilter}
           <h1 class="feed-page__title feed-page__title--sr">Моя лента</h1>
+          <span class="beta-badge" title="Функция в бета-тесте">beta</span>
           <div class="feed-page__date">
             <UiV2Select
               appearance="title"
@@ -2491,6 +2492,9 @@
           {/if}
         {:else}
           <h1 class="feed-page__title">{mainTitle}</h1>
+          {#if !postViewActive}
+            <span class="beta-badge" title="Функция в бета-тесте">beta</span>
+          {/if}
         {/if}
       </div>
       {#if (tab === 'managed' || tab === 'history' || tab === 'drafts') && !postViewActive}

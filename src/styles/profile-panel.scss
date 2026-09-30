@@ -48,6 +48,19 @@ $pp-btn-bg-hover: var(--pp-btn-bg-hover);
   }
 }
 
+.profile-panel--boss-lock {
+  .profile-panel__chrome,
+  .profile-panel__friends-head {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none !important;
+
+    > * {
+      pointer-events: none !important;
+    }
+  }
+}
+
 .profile-panel__nav-slot {
   min-width: 0;
   flex: 1;

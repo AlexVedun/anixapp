@@ -118,6 +118,28 @@
   }
 }
 
+.uiv2-sidenav__beta {
+  position: absolute;
+  top: -1px;
+  right: -2px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0.95rem;
+  height: 0.95rem;
+  padding: 0 0.18rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  pointer-events: none;
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, $color-bg 85%, transparent);
+}
+
 .uiv2-sidenav__folder {
   display: flex;
   flex-direction: column;
@@ -792,6 +814,11 @@ $titlebar-h: 40px;
   &--open {
     opacity: 1;
     pointer-events: auto;
+  }
+
+  &--locked {
+    pointer-events: none;
+    cursor: default;
   }
 }
 

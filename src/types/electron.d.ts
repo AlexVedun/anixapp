@@ -33,6 +33,30 @@ export interface AppUpdateProgress {
   errorMessage?: string;
   /** Тип установки на Linux: 'appimage' | 'pacman' | 'deb' | 'flatpak' | null */
   installType?: string | null;
+  /** Версия, которую качаем (если выбрана вручную). */
+  targetVersion?: string | null;
+}
+
+export interface AppReleaseInfo {
+  version: string;
+  tag: string;
+  name: string;
+  publishedAt: string | null;
+  prerelease: boolean;
+  draft: boolean;
+  url: string;
+  hasAsset: boolean;
+  isCurrent: boolean;
+  isNewer: boolean;
+  isOlder: boolean;
+  channel?: 'stable' | 'beta';
+  source?: 'github' | 'anixback';
+  downloadUrl?: string | null;
+  id?: string;
+  /** Платформа, для которой искали ассет (Linux / Windows / macOS) */
+  platformLabel?: string;
+  /** Ожидаемые расширения ассета */
+  assetLabel?: string;
 }
 
 export interface DevBridgeStatus {
@@ -68,6 +92,8 @@ declare global {
       setPlayerWindowTitle?: (payload: { title?: string; episode?: string }) => void;
       isPlayerOpen: () => Promise<boolean>;
       openExternal: (url: string) => void;
+      /** Warp OS mouse cursor (Windows). Screen coordinates. */
+      setCursorScreenPos?: (x: number, y: number) => Promise<boolean>;
       startTvLanLogin?: () => Promise<{ url: string | null; error?: string }>;
       stopTvLanLogin?: () => Promise<boolean>;
       onTvLanCredentials?: (cb: (detail: { login: string; password: string }) => void) => () => void;
@@ -254,12 +280,23 @@ declare global {
       syncPlayerState: (playback: LobbyPlaybackPayload) => void;
       sendPlayerState: (playback: LobbyPlaybackPayload) => void;
       sendFluoPreview?: (payload: { dataUrl: string; duration?: number }) => void;
-      startUpdateDownload?: () => Promise<void>;
-      checkForUpdate?: (currentVersion: string) => Promise<{
+      startUpdateDownload?: (
+        versionOrOpts?: string | { version?: string; downloadUrl?: string },
+        downloadUrl?: string,
+      ) => Promise<void>;
+      checkForUpdate?: (
+        currentVersion: string,
+        force?: boolean,
+      ) => Promise<{
         version: string;
         url: string;
         body: string | null;
       } | null>;
+      listAppReleases?: (
+        currentVersion?: string,
+        channel?: 'stable' | 'beta',
+        force?: boolean,
+      ) => Promise<AppReleaseInfo[]>;
       installUpdate?: () => Promise<void>;
       getLinuxInstallType?: () => Promise<string | null>;
       getDeviceId: () => Promise<string>;

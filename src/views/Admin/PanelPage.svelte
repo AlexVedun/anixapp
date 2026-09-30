@@ -19,8 +19,10 @@
   import OverviewPanel from './OverviewPanel.svelte';
   import AniListPanel from './AniListPanel.svelte';
   import AdsPanel from './AdsPanel.svelte';
+  import UpdatesPanel from './UpdatesPanel.svelte';
+  import { FOUNDER_ID } from '../../services/admin-api';
 
-  type Tab = 'announcements' | 'staff' | 'overview' | 'anilist' | 'ads';
+  type Tab = 'announcements' | 'staff' | 'overview' | 'anilist' | 'ads' | 'updates';
   type PanelMode = 'idle' | 'create' | 'edit';
 
   const TYPE_CONFIG: Record<AnnouncementType, { label: string; color: string }> = {
@@ -63,6 +65,7 @@
   const canManageAds = $derived(
     $adminPermissions.includes('manage_ads') || $adminPermissions.includes('manage_overview'),
   );
+  const canManageUpdates = $derived(currentUserId === FOUNDER_ID);
 
   const tabItems = $derived([
     ...(canManageAnnouncements ? [{ id: 'announcements', label: 'Объявления', badge: announcements.length || undefined }] : []),
@@ -70,6 +73,7 @@
     ...(canManageOverview ? [{ id: 'overview', label: 'Обзоры' }] : []),
     { id: 'staff', label: canManageStaff ? 'Команда' : 'Мой доступ' },
     { id: 'anilist', label: "Anime API's" },
+    ...(canManageUpdates ? [{ id: 'updates', label: 'Обновления' }] : []),
   ]);
   const canPopOut = $derived(typeof window !== 'undefined' && !!window.electron?.openAdminPanelWindow);
   const panelOpen = $derived(panelMode !== 'idle');
@@ -434,6 +438,10 @@
     {:else if tab === 'anilist'}
       <div class="adm-body__full">
         <AniListPanel />
+      </div>
+    {:else if tab === 'updates' && canManageUpdates}
+      <div class="adm-body__full">
+        <UpdatesPanel />
       </div>
     {/if}
 

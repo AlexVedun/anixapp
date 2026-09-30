@@ -10,7 +10,7 @@
     resolveDownloadWithSiblingFallback,
   } from '../utils/download-queue-client';
   import { navigate } from '../stores/navigation';
-  import { openInAppPlayer } from '../utils/watch-nav';
+  import { launchPlayer } from '../utils/watch-nav';
   import Page from './Page.svelte';
   import { resolveCdnAssetUrl } from '../utils/posterUrl';
   import { infiniteScroll } from '../actions/infiniteScroll';
@@ -515,7 +515,7 @@
     };
 
     const doOpenPlayer = () => {
-      void openInAppPlayer({
+      void launchPlayer({
         releaseId,
         sourceId: selectedSource.id,
         ep: epPosition,

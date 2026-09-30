@@ -17,6 +17,8 @@ export interface SidebarNavItemDef {
   href: string;
   label: string;
   icon: string;
+  /** Показать бейдж beta у пункта (например Лента). */
+  beta?: boolean;
 }
 
 export interface SidebarNavFolderDef {
@@ -248,7 +250,7 @@ export const SIDEBAR_NAV_ITEMS: readonly SidebarNavItemDef[] = [
   { id: 'home', href: '/', label: 'Главная', icon: Icons.iconHome(18) },
   { id: 'overview', href: '/overview', label: 'Обзор', icon: Icons.iconCompass(18) },
   { id: 'fluo', href: '/fluo', label: 'Fluo', icon: Icons.iconSignal(18) },
-  { id: 'feed', href: '/feed', label: 'Лента', icon: Icons.iconNewspaper(18) },
+  { id: 'feed', href: '/feed', label: 'Лента', icon: Icons.iconNewspaper(18), beta: true },
   { id: 'popular', href: '/overview/popular', label: 'Популярное', icon: Icons.iconFlame(18) },
   { id: 'collections', href: '/collections', label: 'Коллекции', icon: Icons.iconLayoutGrid(18) },
   { id: 'bookmarks', href: '/bookmarks', label: 'Закладки', icon: Icons.iconBookmark(18) },

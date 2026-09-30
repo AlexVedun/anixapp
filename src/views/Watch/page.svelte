@@ -641,7 +641,6 @@
       dismissSkipUiOnly();
       try { videoEl?.pause(); } catch { /* ignore */ }
       player.switching = true;
-      showAndSchedule();
       goToEpisode(target);
       return;
     }
@@ -840,29 +839,35 @@
   const IDLE_MS = 3000;
   let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function showOverlay() {
-    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
-    player.overlayVisible = true;
-  }
-
-  /** Пока открыты поповеры / авто-скип — хром нельзя гасить. */
-  function chromeIdleBlocked(): boolean {
+  function chromeHideBlocked(): boolean {
     if (popoverType != null) return true;
+    // Автоскип держит хром, пока висит промпт опенинга/эндинга
     if (skipPromptVisible && skipAutoPref === 'auto') return true;
     return false;
   }
 
+  function showOverlay() {
+    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    player.overlayVisible = true;
+  }
   function scheduleHide() {
-    if (chromeIdleBlocked()) {
-      player.overlayVisible = true;
+    if (chromeHideBlocked()) {
       if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+      player.overlayVisible = true;
       return;
     }
     if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { player.overlayVisible = false; idleTimer = null; }, IDLE_MS);
+    idleTimer = setTimeout(() => {
+      idleTimer = null;
+      if (chromeHideBlocked()) {
+        player.overlayVisible = true;
+        return;
+      }
+      player.overlayVisible = false;
+    }, IDLE_MS);
   }
   function hideNow() {
-    if (chromeIdleBlocked()) return;
+    if (chromeHideBlocked()) return;
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     player.overlayVisible = false;
   }
@@ -872,6 +877,24 @@
     if (e instanceof PointerEvent && e.pointerType === 'touch' && e.type === 'pointermove') return;
     showAndSchedule();
   }
+
+  $effect(() => {
+    if (popoverType != null) {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+      player.overlayVisible = true;
+    }
+  });
+
+  /** После смены серии / seek из зоны автоскипа — снова запускаем idle-hide. */
+  let wasChromeHideBlocked = true;
+  $effect(() => {
+    const blocked = chromeHideBlocked() || player.switching || player.loadState !== 'ready';
+    const leftBlock = wasChromeHideBlocked && !blocked;
+    wasChromeHideBlocked = blocked;
+    if (!leftBlock) return;
+    if (!player.overlayVisible) return;
+    scheduleHide();
+  });
 
   function bindCoreEls() {
     core.video = videoEl ?? null;
@@ -2959,19 +2982,6 @@
     return getSkipAutoPref(watchState.releaseId, skipPromptVisible);
   });
 
-  // Когда блокер (popover / авто-скип) снимается — снова запускаем таймер скрытия.
-  $effect(() => {
-    const blocked = chromeIdleBlocked();
-    if (blocked) {
-      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
-      player.overlayVisible = true;
-      return;
-    }
-    if (player.overlayVisible && player.loadState === 'ready') {
-      scheduleHide();
-    }
-  });
-
   const skipToNextEpisode = $derived.by(() => {
     if (nextPreviewVisible || autoNextFired) return null;
     if (skipPrompt !== 'ending' || !endingIsAtEpisodeEnd(skipMarks?.ending, player.duration)) return null;
@@ -3049,6 +3059,7 @@
         raf = requestAnimationFrame(tickFrame);
       };
       raf = requestAnimationFrame(tickFrame);
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       player.overlayVisible = true;
 
       return () => {
@@ -3076,6 +3087,7 @@
         raf = requestAnimationFrame(tickFrame);
       };
       raf = requestAnimationFrame(tickFrame);
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       player.overlayVisible = true;
 
       return () => {
@@ -3096,7 +3108,6 @@
     watchCountdownPct = 0;
     if (remember) rememberSkipPref(kind, 'auto');
     if (goNext) {
-      showAndSchedule();
       if (goNext.alt && nextEpAltDub) {
         goToNextEpisodeInAltDub(nextEpAltDub);
         return;

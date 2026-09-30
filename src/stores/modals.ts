@@ -23,6 +23,8 @@ export const lobbyWatchingPeerIds = writable<string[]>([]);
 
 export const settingsModalOpen = writable(false);
 export const settingsModalInitialTab = writable<string | null>(null);
+/** Блокирует закрытие/навигацию настроек во время босс-пасхалки. */
+export const settingsBossFightLock = writable(false);
 export const notificationsModalOpen = writable(false);
 export const watchModalOpen = writable(false);
 export const watchModalReleaseId = writable<number>(0);

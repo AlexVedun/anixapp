@@ -111,6 +111,9 @@
     {/if}
   {:else}
     {@html item.icon}
+    {#if item.beta}
+      <span class="uiv2-sidenav__beta" aria-hidden="true">β</span>
+    {/if}
   {/if}
 {/snippet}
 
@@ -124,14 +127,20 @@
     {#if entry.kind === 'item'}
       {@const item = entry.item}
       {@const on = isActive(item.href)}
-      <UiV2Tooltip text={item.label} placement={tooltipPlacement} class="uiv2-sidenav__tip">
+      <UiV2Tooltip
+        text={item.beta ? '' : item.label}
+        title={item.beta ? item.label : ''}
+        meta={item.beta ? 'beta' : undefined}
+        placement={tooltipPlacement}
+        class="uiv2-sidenav__tip"
+      >
         <a
           href={`#${item.href === '/' ? '/' : item.href}`}
           class="uiv2-sidenav__tab"
           class:uiv2-sidenav__tab--active={on}
           class:uiv2-sidenav__tab--downloads={item.href === '/downloads'}
           class:uiv2-sidenav__tab--guest={item.href === '/bookmarks' && !$isAuthenticated}
-          aria-label={item.label}
+          aria-label={item.beta ? `${item.label} (beta)` : item.label}
           aria-current={on ? 'page' : undefined}
           onclick={(e) => goTo(item, e)}
         >
@@ -212,7 +221,13 @@
               {#each entry.children as child, i (child.id)}
                 {@const childOn = isActive(child.href)}
                 <div class="uiv2-sidenav__child-wrap" style={`--uiv2-sidenav-i:${i}`}>
-                  <UiV2Tooltip text={child.label} placement={tooltipPlacement} class="uiv2-sidenav__tip">
+                  <UiV2Tooltip
+                    text={child.beta ? '' : child.label}
+                    title={child.beta ? child.label : ''}
+                    meta={child.beta ? 'beta' : undefined}
+                    placement={tooltipPlacement}
+                    class="uiv2-sidenav__tip"
+                  >
                     <a
                       href={`#${child.href === '/' ? '/' : child.href}`}
                       class="uiv2-sidenav__tab uiv2-sidenav__tab--child"
@@ -220,7 +235,7 @@
                       class:uiv2-sidenav__tab--downloads={child.href === '/downloads'}
                       class:uiv2-sidenav__tab--guest={child.href === '/bookmarks' && !$isAuthenticated}
                       tabindex={expanded ? 0 : -1}
-                      aria-label={child.label}
+                      aria-label={child.beta ? `${child.label} (beta)` : child.label}
                       aria-current={childOn ? 'page' : undefined}
                       onclick={(e) => goTo(child, e)}
                     >

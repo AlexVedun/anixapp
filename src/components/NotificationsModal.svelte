@@ -3,7 +3,7 @@
   import { navigate } from '../stores/navigation';
   import { openFeedArticle, openFeedChannel } from '../stores/feed-focus';
   import { handleUserProfileClick } from '../stores/user-profile';
-  import { fetchAllNotifications } from '../stores/notifications';
+  import { fetchAllNotifications, markNotificationsRead } from '../stores/notifications';
   import {
     iconPlay,
     iconBookmark,
@@ -111,6 +111,7 @@
   let prefBusy = $state(false);
   let prefs = $state<NotificationPrefsState>(emptyPrefs());
   let prefsError = $state('');
+  let markBusy = $state(false);
   let voiceoverCatalog = $state<VoiceoverTypeOption[]>([]);
   let listsDialogOpen = $state(false);
   let typesScopeOpen = $state(false);
@@ -166,6 +167,24 @@
       badge: filterCounts[f.id],
     })),
   );
+
+  const hasUnread = $derived(
+    notifications.some((raw) => !!(raw as { is_new?: boolean })?.is_new),
+  );
+
+  async function handleMarkRead() {
+    if (markBusy || !hasUnread) return;
+    markBusy = true;
+    try {
+      await markNotificationsRead();
+      notifications = notifications.map((raw) => {
+        if (raw && typeof raw === 'object') return { ...(raw as object), is_new: false };
+        return raw;
+      });
+    } finally {
+      markBusy = false;
+    }
+  }
 
   function itemKey(raw: unknown, index: number): string {
     const rec = raw as { id?: number | string; type?: string; timestamp?: number };
@@ -579,6 +598,14 @@
       {:else}
         <h2 class="notifications-modal__heading">Уведомления</h2>
         <div class="notifications-modal__header-actions">
+          <UiV2RoundButton
+            label="Пометить как прочитанное"
+            size="sm"
+            disabled={markBusy || !hasUnread}
+            onclick={() => { void handleMarkRead(); }}
+          >
+            {@html iconListChecks(16)}
+          </UiV2RoundButton>
           <UiV2RoundButton label="Настройки уведомлений" size="sm" onclick={() => { void openSettings(); }}>
             {@html iconSettings(16)}
           </UiV2RoundButton>

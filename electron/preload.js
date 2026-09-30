@@ -181,6 +181,7 @@ contextBridge.exposeInMainWorld('electron', {
   setPlayerWindowTitle: (payload) => ipcRenderer.send('player:setWindowTitle', payload),
   isPlayerOpen: () => ipcRenderer.invoke('player:isOpen'),
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
+  setCursorScreenPos: (x, y) => ipcRenderer.invoke('cursor:setScreenPos', { x, y }),
   startTvLanLogin: () => ipcRenderer.invoke('tvLan:start'),
   stopTvLanLogin: () => ipcRenderer.invoke('tvLan:stop'),
   onTvLanCredentials: (cb) => {
@@ -227,8 +228,12 @@ contextBridge.exposeInMainWorld('electron', {
   syncPlayerState: (playback) => ipcRenderer.send('player:syncState', playback),
   sendPlayerState: (playback) => ipcRenderer.send('player:stateChanged', playback),
   sendFluoPreview: (payload) => ipcRenderer.send('fluo:previewFromPlayer', payload),
-  startUpdateDownload: () => ipcRenderer.invoke('app:startUpdateDownload'),
-  checkForUpdate: (currentVersion) => ipcRenderer.invoke('app:checkForUpdate', currentVersion),
+  startUpdateDownload: (versionOrOpts, downloadUrl) =>
+    ipcRenderer.invoke('app:startUpdateDownload', versionOrOpts, downloadUrl),
+  checkForUpdate: (currentVersion, force) =>
+    ipcRenderer.invoke('app:checkForUpdate', currentVersion, !!force),
+  listAppReleases: (currentVersion, channel, force) =>
+    ipcRenderer.invoke('app:listAppReleases', currentVersion, channel, !!force),
   installUpdate: () => ipcRenderer.invoke('app:installUpdate'),
   getLinuxInstallType: () => ipcRenderer.invoke('app:getLinuxInstallType'),
   getSettings: () => ipcRenderer.invoke('app:getSettings'),
