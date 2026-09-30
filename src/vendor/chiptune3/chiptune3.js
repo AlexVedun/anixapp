@@ -33,7 +33,9 @@ export class ChiptuneJsPlayer {
     this.gain.gain.value = 1;
     this.handlers = [];
 
-    const moduleUrl = workletUrl || new URL('./chiptune3.worklet.js', import.meta.url).href;
+    const moduleUrl =
+      workletUrl ||
+      new URL(/* @vite-ignore */ './chiptune3.worklet.js', import.meta.url).href;
 
     this.context.audioWorklet
       .addModule(moduleUrl)

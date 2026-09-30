@@ -631,7 +631,7 @@
     flex-wrap: wrap;
   }
 
-  .fluo-page__code {
+  .fluo-page :global(.fluo-page__code) {
     flex: 1 1 12rem;
     max-width: 22rem;
   }
@@ -1089,7 +1089,7 @@
       align-items: stretch;
     }
 
-    .fluo-page__create {
+    .fluo-page :global(.fluo-page__create) {
       width: 100%;
     }
 
@@ -1098,7 +1098,7 @@
       align-items: stretch;
     }
 
-    .fluo-page__code {
+    .fluo-page :global(.fluo-page__code) {
       max-width: none;
     }
   }
@@ -1119,7 +1119,7 @@
       align-items: stretch;
     }
 
-    .fluo-page__code {
+    .fluo-page :global(.fluo-page__code) {
       max-width: none;
     }
   }

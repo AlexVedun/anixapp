@@ -1460,7 +1460,6 @@
   .upd--keygen-open .upd__actions,
   .upd--keygen-open .upd__progress,
   .upd--keygen-open .upd__footer,
-  .upd--keygen-open .upd__status,
   .upd--keygen-open .upd__note {
     display: none;
   }
@@ -1855,32 +1854,8 @@
     image-rendering: pixelated;
   }
 
-  .upd__pixel-score-time {
-    color: #fff;
-  }
-
   .upd__pixel-score-sep {
     color: #663333;
-  }
-
-  .upd__pixel-score--best {
-    padding-top: 0;
-    font-size: 0.55rem;
-    color: #aa6666;
-  }
-
-  .upd__pixel-score-lab {
-    color: #ff8080;
-    margin-right: 0.2rem;
-  }
-
-  .upd__pixel-score--best .upd__pixel-score-pts {
-    color: #ffb0b0;
-  }
-
-  .upd__keygen-hint-meta--best {
-    color: #ff8080;
-    font-size: 0.52rem;
   }
 
   .upd__pixel-score-rank {

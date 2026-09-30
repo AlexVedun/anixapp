@@ -813,11 +813,14 @@
 {/snippet}
 
 {#snippet railColumn(side: 'left' | 'right', entries: SidebarNavEntry[], label: string)}
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="nav-board__col"
     class:nav-board__col--active={overZone === side}
     class:nav-board__col--empty={entries.length === 0}
     data-side={side}
+    role="group"
+    aria-label={label}
     ondragover={(e) => onZoneDragOver(side, e)}
     ondrop={(e) => onZoneDrop(side, e)}
     ondragleave={() => {
@@ -982,9 +985,12 @@
   <div class="nav-board" class:nav-board--dragging={dragging}>
     {@render railColumn('left', layout.left, 'Левая панель')}
 
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       class="nav-board__col"
       class:nav-board__col--active={overZone === 'pool'}
+      role="group"
+      aria-label="Доступные разделы"
       ondragover={(e) => onZoneDragOver('pool', e)}
       ondrop={(e) => onZoneDrop('pool', e)}
       ondragleave={() => { if (overZone === 'pool') overZone = null; }}
@@ -1010,7 +1016,6 @@
                 draggable={!used}
                 title={used ? `${item.label} уже на панели` : item.label}
                 aria-label={used ? `${item.label} — уже размещён` : item.label}
-                aria-disabled={used}
                 ondragstart={(e) => onItemDragStart(item.id, 'pool', e)}
                 ondragend={onDragEnd}
               >
@@ -1029,7 +1034,7 @@
             <div
               class="nav-board__pool-item nav-board__pool-item--folder"
               class:nav-board__pool-item--dragging={dragNewFolder}
-              role="listitem"
+              role="button"
               tabindex="0"
               draggable="true"
               title="Клик или перетащите на панель — создать папку (без лимита)"
@@ -1125,11 +1130,13 @@
 
 {#if iconPickerOpen}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     bind:this={iconPickerEl}
     class="nav-folder-icons-pop"
     style={`left:${iconPickerX}px;top:${iconPickerY}px;`}
     role="dialog"
+    tabindex="-1"
     aria-label="Иконка папки"
     use:portal
     onclick={(e) => e.stopPropagation()}

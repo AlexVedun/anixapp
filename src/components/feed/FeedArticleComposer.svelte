@@ -2088,10 +2088,13 @@
         {:else}
           <div class="feed-composer__canvas">
             {#each blocks as block, index (block.id)}
+              <!-- svelte-ignore a11y_no_static_element_interactions -->
               <div
                 class="feed-composer__block"
                 class:is-focused={focusedId === block.id}
                 data-block-id={block.id}
+                role="group"
+                aria-label="Блок редактора"
                 aria-current={focusedId === block.id ? 'true' : undefined}
                 onpointerdown={() => { focusedId = block.id; }}
               >
@@ -2132,6 +2135,7 @@
                     class:feed-composer__ce--h={block.type === 'header'}
                     contenteditable="true"
                     role="textbox"
+                    tabindex="0"
                     data-block-id={block.id}
                     data-field="main"
                     data-placeholder={block.type === 'header' ? 'Заголовок' : 'Начните писать'}
@@ -2147,6 +2151,7 @@
                       class="feed-composer__ce"
                       contenteditable="true"
                       role="textbox"
+                      tabindex="0"
                       data-block-id={block.id}
                       data-field="main"
                       data-placeholder="Цитата"
@@ -2160,6 +2165,7 @@
                       class="feed-composer__ce feed-composer__ce--caption"
                       contenteditable="true"
                       role="textbox"
+                      tabindex="0"
                       data-block-id={block.id}
                       data-field="caption"
                       data-placeholder="Автор"
@@ -2177,6 +2183,7 @@
                         class="feed-composer__ce feed-composer__ce--li"
                         contenteditable="true"
                         role="textbox"
+                        tabindex="0"
                         data-block-id={block.id}
                         data-item-index={itemIndex}
                         data-placeholder="Пункт списка"
@@ -2200,10 +2207,9 @@
                     class:feed-composer__media--grid={useGrid}
                     data-block-id={block.id}
                     data-field="main"
-                    tabindex="0"
                     role="group"
                     aria-label="Изображения"
-                    onfocus={() => { focusedId = block.id; focusedItem = null; }}
+                    onfocusin={() => { focusedId = block.id; focusedItem = null; }}
                   >
                     {#each block.items as item, itemIndex (item.id)}
                       <div

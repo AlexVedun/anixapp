@@ -695,15 +695,6 @@
   border-radius: 0;
 }
 
-.adm-ads__preview-variants {
-  display: inline-flex;
-  gap: 0.25rem;
-  margin: 0 0 0.65rem;
-  padding: 0.2rem;
-  border-radius: 8px;
-  background: var(--uiv2-hover-bg);
-}
-
 .adm-ads__player {
   display: block;
   width: 100%;
@@ -751,129 +742,11 @@
   background: var(--uikit-v2-bg);
 }
 
-.adm-ads__variants {
-  display: inline-flex;
-  padding: 0.15rem;
-  border-radius: 9px;
-  background: var(--uiv2-surface-raised);
-  border: 1px solid var(--uiv2-border-subtle);
-}
-
-.adm-ads__variant {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--uiv2-fg-muted);
-  font: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.35rem 0.7rem;
-  border-radius: 7px;
-  cursor: pointer;
-
-  &--on {
-    background: var(--uikit-v2-surface);
-    color: var(--uikit-v2-text);
-  }
-}
-
 .adm-ads__ws-body {
   display: grid;
   flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
-}
-
-.adm-ads__canvas-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 1.25rem;
-  min-height: 0;
-  overflow: auto;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--uiv2-border-subtle) 55%, transparent) 1px, transparent 1px),
-    linear-gradient(color-mix(in srgb, var(--uiv2-border-subtle) 55%, transparent) 1px, transparent 1px);
-  background-size: 18px 18px;
-  background-color: color-mix(in srgb, var(--uikit-v2-bg) 92%, #000);
-}
-
-.adm-ads__canvas-frame {
-  width: min(100%, 26rem);
-
-  &--figma {
-    width: min(100%, 42rem);
-    max-width: 100%;
-  }
-}
-
-.adm-ads__inspector {
-  border-left: 1px solid var(--uiv2-border-subtle);
-  background: var(--uikit-v2-surface);
-  min-height: 0;
-  position: relative;
-}
-
-.adm-ads__inspector :global(.uiv2-scroll-area__viewport) {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.adm-ads__inspector-vp {
-  padding: 0.85rem 1rem 1.5rem;
-}
-
-.adm-ads__icons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-bottom: 0.85rem;
-}
-
-.adm-ads__icon {
-  width: 2rem;
-  height: 2rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid var(--uiv2-border-subtle);
-  background: var(--uikit-v2-bg);
-  color: var(--uikit-v2-text);
-  cursor: pointer;
-  padding: 0;
-
-  :global(svg) {
-    width: 1rem;
-    height: 1rem;
-  }
-
-  &--on {
-    border-color: var(--uikit-v2-accent);
-    background: color-mix(in srgb, var(--uikit-v2-accent) 14%, transparent);
-  }
-}
-
-.adm-ads__slider {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr) 3rem;
-  align-items: center;
-  gap: 0.4rem;
-  margin-bottom: 0.45rem;
-}
-
-.adm-ads__slider-label {
-  font-size: 0.7rem;
-  color: var(--uiv2-fg-muted);
-}
-
-.adm-ads__slider-val {
-  font-size: 0.68rem;
-  text-align: right;
-  color: var(--uiv2-fg-muted);
-  font-variant-numeric: tabular-nums;
 }
 
 .adm-editor__head {
@@ -986,8 +859,7 @@
   color: var(--uiv2-fg-muted);
 }
 
-.adm-field__input,
-.adm-field__textarea {
+.adm-field__input {
   width: 100%;
   box-sizing: border-box;
   padding: 0.5rem 0.7rem;
@@ -1000,12 +872,6 @@
   outline: none;
 
   &:focus { border-color: var(--uikit-v2-accent); }
-}
-
-.adm-field__textarea {
-  resize: vertical;
-  min-height: 3.5rem;
-  line-height: 1.4;
 }
 
 .adm-toggle {
