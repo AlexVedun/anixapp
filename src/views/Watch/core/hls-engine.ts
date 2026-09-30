@@ -9,6 +9,7 @@ type VideoWithHls = HTMLVideoElement & {
   _hlsError?: (event: string, data: { fatal: boolean; type: string; details?: string }) => void;
   _hlsFragLoaded?: () => void;
   _hlsNetTimers?: ReturnType<typeof setTimeout>[];
+  _hlsLastKickAt?: number;
 };
 
 export type HlsFatalKind = 'recover' | 'reresolve' | 'fallback';
@@ -20,12 +21,20 @@ export interface SwapMediaHandlers {
   onReconnect?: (active: boolean) => void;
   /** Полностью пересоздать HLS — иначе старый кадр остаётся в <video> и Anime4K «залипает». */
   forceNew?: boolean;
+  /** Resume VOD from this time so we don't load seg-1 then seek (black/OP flash). */
+  startPosition?: number;
 }
 
 /** Quiet soft kicks — no UI. Escalate only if still stuck after these. */
-const NET_BACKOFF_MS = [0, 800, 1800, 3200] as const;
-const NET_ESCALATE_AFTER_MS = 10_000;
-const MAX_SOFT_NET_ROUNDS = 3;
+const NET_BACKOFF_MS = [0, 1200, 2800] as const;
+const NET_ESCALATE_AFTER_MS = 12_000;
+const MAX_SOFT_NET_ROUNDS = 2;
+const KICK_MIN_INTERVAL_MS = 2_000;
+
+const NUDGE_DETAILS = new Set<string>([
+  Hls.ErrorDetails.BUFFER_NUDGE_ON_STALL,
+  Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE,
+]);
 
 export function getAttachedHls(video: HTMLVideoElement): Hls | undefined {
   return (video as VideoWithHls)._hls;
@@ -59,11 +68,20 @@ function unbindHlsHandlers(el: VideoWithHls): void {
   el._hlsFragLoaded = undefined;
 }
 
-function hasForwardBuffer(video: HTMLVideoElement, minSec = 1): boolean {
+/** Forward buffer at the playhead (not the last TimeRanges end — ignores holes). */
+export function bufferAheadAtPlayhead(video: HTMLVideoElement, minSec = 1): boolean {
   try {
-    if (video.buffered.length === 0) return false;
-    const end = video.buffered.end(video.buffered.length - 1);
-    return end - video.currentTime > minSec;
+    const t = video.currentTime;
+    const buf = video.buffered;
+    if (!buf.length || !Number.isFinite(t)) return false;
+    for (let i = 0; i < buf.length; i++) {
+      const start = buf.start(i);
+      const end = buf.end(i);
+      if (t >= start - 0.25 && t < end) {
+        return end - t > minSec;
+      }
+    }
+    return false;
   } catch {
     return false;
   }
@@ -71,10 +89,10 @@ function hasForwardBuffer(video: HTMLVideoElement, minSec = 1): boolean {
 
 function playbackLooksHealthy(video: HTMLVideoElement): boolean {
   if (video.ended) return true;
-  if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA && hasForwardBuffer(video, 0.75)) {
+  if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA && bufferAheadAtPlayhead(video, 0.75)) {
     return true;
   }
-  if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && hasForwardBuffer(video, 0.4)) {
+  if (!video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && bufferAheadAtPlayhead(video, 0.4)) {
     return true;
   }
   return false;
@@ -114,12 +132,13 @@ function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaH
   };
 
   const kickStartLoad = (atTime?: number) => {
+    const now = performance.now();
+    if (el._hlsLastKickAt != null && now - el._hlsLastKickAt < KICK_MIN_INTERVAL_MS) return;
+    el._hlsLastKickAt = now;
     try {
-      if (typeof atTime === 'number' && Number.isFinite(atTime) && atTime > 0.25) {
-        hls.startLoad(atTime);
-      } else {
-        hls.startLoad(-1);
-      }
+      // skipSeekToStartPosition: resume loading without jumping the playhead.
+      const t = typeof atTime === 'number' && Number.isFinite(atTime) && atTime > 0.25 ? atTime : -1;
+      hls.startLoad(t, true);
     } catch { /* ignore */ }
   };
 
@@ -173,10 +192,10 @@ function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaH
   const onError = (_evt: string, data: { fatal: boolean; type: string; details?: string }) => {
     if (el._hlsGen !== gen) return;
     if (!data.fatal) {
-      if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-        try { hls.recoverMediaError(); } catch { /* ignore */ }
-      }
-      // Non-fatal network (frag retry etc.) — hls.js handles; stay silent.
+      // Gap nudges are non-fatal by design — recoverMediaError flushes MSE and
+      // often reloads from the wrong place (black screen / OP flash / seg-1).
+      if (data.details && NUDGE_DETAILS.has(data.details)) return;
+      // Other non-fatal MEDIA/NETWORK: let hls.js retry on its own.
       return;
     }
     if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaAttempts++ < 4) {
@@ -228,11 +247,21 @@ export function swapMediaSource(
     if (existing && !handlers.forceNew) {
       bindHlsHandlers(existing, video, handlers);
       existing.loadSource(url);
-      existing.startLoad();
+      const sp = handlers.startPosition;
+      if (typeof sp === 'number' && Number.isFinite(sp) && sp > 0.25) {
+        existing.startLoad(sp);
+      } else {
+        existing.startLoad(-1);
+      }
       return { reused: true, isHls: true };
     }
     detachHls(video);
-    const hls = new Hls(buildHlsConfig());
+    const cfg = { ...buildHlsConfig() } as ReturnType<typeof buildHlsConfig> & { startPosition?: number };
+    const sp = handlers.startPosition;
+    if (typeof sp === 'number' && Number.isFinite(sp) && sp > 0.25) {
+      cfg.startPosition = sp;
+    }
+    const hls = new Hls(cfg);
     bindHlsHandlers(hls, video, handlers);
     hls.loadSource(url);
     hls.attachMedia(video);
@@ -248,8 +277,13 @@ export function swapMediaSource(
 export function startHlsFromTime(video: HTMLVideoElement, time: number): void {
   const hls = getAttachedHls(video);
   if (!hls) return;
+  const el = video as VideoWithHls;
+  const now = performance.now();
+  if (el._hlsLastKickAt != null && now - el._hlsLastKickAt < KICK_MIN_INTERVAL_MS) return;
+  el._hlsLastKickAt = now;
   try {
     const t = Number.isFinite(time) && time > 0.25 ? time : -1;
-    hls.startLoad(t);
+    // Soft stall kick: keep playhead where it is, only resume fragment loading.
+    hls.startLoad(t, true);
   } catch { /* ignore */ }
 }

@@ -1,7 +1,7 @@
 import { notifyHistoryChanged } from '../../../utils/favorites-events';
 import { isLocalMediaUrl } from '../../../utils/local-media-url';
 import { isHlsUrl, stripKodikQueryParams } from '../_utils';
-import { detachHls, startHlsFromTime, swapMediaSource } from './hls-engine';
+import { bufferAheadAtPlayhead, detachHls, startHlsFromTime, swapMediaSource } from './hls-engine';
 import { prefetchEpisodeUrl, resolveEpisodeUrlCached, invalidateEpisodeUrlCache, type ResolvedEpisodeMedia } from './url-cache';
 import { UpscaleController, isGpuAvailable } from './upscale';
 import { SurroundController } from './surround-audio';
@@ -32,7 +32,7 @@ const STALL_TICK_MS = 6_000;
 /** Progressive: waiting/stalled longer than this → soft reconnect kick. */
 const PROGRESSIVE_WAIT_MS = 10_000;
 /** Soft stall kicks before full reresolve (× STALL_TICK_MS). */
-const STALL_SOFT_TICKS = 3;
+const STALL_SOFT_TICKS = 2;
 
 export class PlayerCore {
   video: HTMLVideoElement | null = null;
@@ -141,6 +141,8 @@ export class PlayerCore {
 
     const { isHls } = swapMediaSource(video, opts.url, {
       forceNew: true,
+      // Load from resume time — avoid fetching seg-1 then seeking (OP/black flash).
+      startPosition: opts.seekTime,
       onReady: () => {
         if (myGen !== this.wdGen) return;
         opts.onReconnect?.(false);
@@ -186,18 +188,13 @@ export class PlayerCore {
         stallTicks = 0;
         return;
       }
-      // Have some forward buffer → not stalled.
-      try {
-        if (video.buffered.length > 0) {
-          const end = video.buffered.end(video.buffered.length - 1);
-          if (end - video.currentTime > 1.5) {
-            lastStall = video.currentTime;
-            stallTicks = 0;
-            opts.onReconnect?.(false);
-            return;
-          }
-        }
-      } catch { /* ignore */ }
+      // Forward buffer at playhead (not last TimeRanges end — that ignores holes).
+      if (bufferAheadAtPlayhead(video, 1.5)) {
+        lastStall = video.currentTime;
+        stallTicks = 0;
+        opts.onReconnect?.(false);
+        return;
+      }
 
       const ct = video.currentTime;
       if (lastStall >= 0 && Math.abs(ct - lastStall) < 0.05) {

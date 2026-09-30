@@ -3033,7 +3033,7 @@
     }
 
     const paused = player.paused;
-    const blocked = inLobby || player.switching || lobbyWaitOverlay != null || autoNextFired;
+    const blocked = inLobby || player.switching || player.reconnecting || lobbyWaitOverlay != null || autoNextFired;
     if (paused || blocked || !player.useVideo || player.loadState !== 'ready') return;
 
     if (autoSkip) {
@@ -3043,11 +3043,30 @@
       const remainSec = range ? Math.max(0.5, range.end - t) : SKIP_AUTO_MS / 1000;
       const duration = Math.min(SKIP_AUTO_MS, Math.max(1500, remainSec * 1000));
       const elapsed0 = untrack(() => (skipCountdownPct / 100) * duration);
-      const startedAt = performance.now() - elapsed0;
+      let startedAt = performance.now() - elapsed0;
+      let pausedAccum = 0;
+      let bufSince = 0;
       let raf = 0;
 
       const tickFrame = (now: number) => {
-        if (autoNextFired || player.switching) return;
+        if (autoNextFired || player.switching || player.reconnecting) return;
+        const el = videoEl;
+        const stuck = !!(
+          el
+          && !el.paused
+          && (el.seeking || el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
+        );
+        if (stuck) {
+          if (!bufSince) bufSince = now;
+          raf = requestAnimationFrame(tickFrame);
+          return;
+        }
+        if (bufSince) {
+          pausedAccum += now - bufSince;
+          bufSince = 0;
+          startedAt += pausedAccum;
+          pausedAccum = 0;
+        }
         const elapsed = now - startedAt;
         skipCountdownPct = Math.min(100, (elapsed / duration) * 100);
         if (elapsed >= duration) {
@@ -3071,11 +3090,30 @@
       skipCountdownPct = 0;
       const duration = WATCH_AUTO_MS;
       const elapsed0 = untrack(() => (watchCountdownPct / 100) * duration);
-      const startedAt = performance.now() - elapsed0;
+      let startedAt = performance.now() - elapsed0;
+      let pausedAccum = 0;
+      let bufSince = 0;
       let raf = 0;
 
       const tickFrame = (now: number) => {
-        if (autoNextFired || player.switching) return;
+        if (autoNextFired || player.switching || player.reconnecting) return;
+        const el = videoEl;
+        const stuck = !!(
+          el
+          && !el.paused
+          && (el.seeking || el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
+        );
+        if (stuck) {
+          if (!bufSince) bufSince = now;
+          raf = requestAnimationFrame(tickFrame);
+          return;
+        }
+        if (bufSince) {
+          pausedAccum += now - bufSince;
+          bufSince = 0;
+          startedAt += pausedAccum;
+          pausedAccum = 0;
+        }
         const elapsed = now - startedAt;
         watchCountdownPct = Math.min(100, (elapsed / duration) * 100);
         if (elapsed >= duration) {

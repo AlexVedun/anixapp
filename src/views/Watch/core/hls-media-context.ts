@@ -55,11 +55,19 @@ export function refererForMediaUrl(url: string): string | undefined {
 
 export function buildHlsConfig(): Partial<HlsConfig> {
   return {
-    // Unstable CDNs / proxy: longer timeouts + more frag retries before fatal.
+    // Unstable CDNs / proxy: longer timeouts + deep forward buffer so a slow
+    // fragment doesn't freeze playback. Keep maxBufferHole near default so we
+    // don't jump the playhead through empty ranges (black frames / fake skips).
     enableWorker: true,
     lowLatencyMode: false,
-    maxBufferHole: 0.8,
-    nudgeMaxRetry: 5,
+    startFragPrefetch: true,
+    maxBufferLength: 60,
+    maxMaxBufferLength: 120,
+    maxBufferSize: 100 * 1000 * 1000,
+    backBufferLength: 30,
+    maxBufferHole: 0.2,
+    nudgeMaxRetry: 3,
+    highBufferWatchdogPeriod: 3,
     manifestLoadingTimeOut: 20_000,
     manifestLoadingMaxRetry: 6,
     manifestLoadingRetryDelay: 800,
@@ -68,10 +76,10 @@ export function buildHlsConfig(): Partial<HlsConfig> {
     levelLoadingMaxRetry: 6,
     levelLoadingRetryDelay: 800,
     levelLoadingMaxRetryTimeout: 12_000,
-    fragLoadingTimeOut: 25_000,
-    fragLoadingMaxRetry: 8,
-    fragLoadingRetryDelay: 500,
-    fragLoadingMaxRetryTimeout: 16_000,
+    fragLoadingTimeOut: 60_000,
+    fragLoadingMaxRetry: 10,
+    fragLoadingRetryDelay: 400,
+    fragLoadingMaxRetryTimeout: 20_000,
     xhrSetup: (xhr, url) => {
       const ref = refererForMediaUrl(url);
       if (!ref) return;
