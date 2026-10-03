@@ -225,10 +225,15 @@ export class PlayerCore {
       const onWaitStart = () => {
         if (myGen !== this.wdGen || video.paused || video.ended) return;
         clearWait();
+        const startedAt = !isNaN(video.currentTime) ? video.currentTime : 0;
         this.progressiveWaitTimer = setTimeout(() => {
           this.progressiveWaitTimer = null;
           if (myGen !== this.wdGen || video.paused || video.ended) return;
           const ct = !isNaN(video.currentTime) ? video.currentTime : 0;
+          // `stalled`/`waiting` приходят и при простое сети с полным буфером (нативный HLS):
+          // если позиция идёт вперёд и впереди есть данные — это не зависание, источник не
+          // трогаем (иначе video.src пересоздаётся каждые ~20 с → чёрный кадр).
+          if (video.readyState >= 3 && ct - startedAt > 1 && bufferAheadAtPlayhead(video, 1.5)) return;
           if (!progressiveEscalated) {
             progressiveEscalated = true;
             // Quiet soft reload — no overlay.
