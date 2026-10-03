@@ -135,6 +135,7 @@ export class PlayerCore {
       if (myGen !== this.wdGen) return;
       const savedTime = !isNaN(video.currentTime) ? video.currentTime : 0;
       const wasPaused = video.paused;
+      console.warn(`[Player] reresolve at ${savedTime.toFixed(1)}s (rs=${video.readyState}, hls=${isHls})`);
       opts.onReconnect?.(true);
       opts.onReresolve(savedTime, wasPaused);
     };
@@ -319,6 +320,7 @@ export class PlayerCore {
     try {
       const t = Math.max(0, atTime);
       const abs = url;
+      console.warn(`[Player] soft reload of source at ${t.toFixed(1)}s (rs=${video.readyState})`);
       // Force network re-fetch without leaving the element empty for long.
       video.src = abs;
       const seek = () => {
