@@ -68,6 +68,8 @@ function toHotlinkSafeCdnUrl(url: string): string {
     const parsed = new URL(url);
     const host = parsed.hostname.replace(/^www\./, '');
     if (host.startsWith('mirror-') || host.startsWith('mirror.')) return url;
+    // s3.* (баннеры и т.п.) отдаётся без Referer и зеркала mirror-s3 не имеет (404)
+    if (/^s\d+\./.test(host)) return url;
     const parts = host.split('.');
     parsed.hostname = parts.length > 2
       ? `mirror-${parts[0]}.${parts.slice(1).join('.')}`
@@ -76,6 +78,20 @@ function toHotlinkSafeCdnUrl(url: string): string {
   } catch {
     return url;
   }
+}
+
+/** Мобильное приложение: зеркало mirror-s.* нередко зависает, а оригинал s.* отдаёт ту же картинку. */
+function toDirectCdnUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (/^mirror-s\d*\./.test(parsed.hostname)) {
+      parsed.hostname = parsed.hostname.replace(/^mirror-/, '');
+      return parsed.toString();
+    }
+  } catch {
+    /* ignore */
+  }
+  return url;
 }
 
 /** Прокси через Electron main (Referer anixart.tv) или Vite /__cdn в браузере. */
@@ -89,7 +105,8 @@ export function toCdnProxyUrl(url: string): string {
   if (typeof window !== 'undefined' && window.electron) {
     return `anix-cdn://asset/?u=${encodeURIComponent(trimmed)}`;
   }
-  if (isCapacitorWebView() || isTvBuild()) return toHotlinkSafeCdnUrl(trimmed);
+  if (isCapacitorWebView()) return toDirectCdnUrl(trimmed);
+  if (isTvBuild()) return toHotlinkSafeCdnUrl(trimmed);
   if (import.meta.env.DEV && typeof window !== 'undefined') {
     return `/__cdn/?u=${encodeURIComponent(trimmed)}`;
   }

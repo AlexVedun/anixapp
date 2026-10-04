@@ -200,7 +200,8 @@
   </div>
 
   <div class="watch-page__btns-right">
-    <span class="watch-page__time-pill" aria-hidden="false">{currentTime} / {totalTime}</span>
+    <!-- Пока длительность неизвестна (манифест ещё грузится) таймкод не показываем, чтобы не мигало 0:00 / 0:00 -->
+    <span class="watch-page__time-pill" aria-hidden="false" style:visibility={!totalTime || totalTime === '0:00' ? 'hidden' : 'visible'}>{currentTime} / {totalTime}</span>
 
     {#if onpip}
       <UiV2Tooltip

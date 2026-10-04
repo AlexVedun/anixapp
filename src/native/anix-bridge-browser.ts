@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Anixart, BookmarkSortType, BookmarkType, DefaultResult } from 'anixapi';
 import { attachLegacyEndpoints } from './legacy-endpoints';
+import { attachApiFailover, installProxyKeyFetch, isProxyUrl, proxyKey } from './api-failover';
 import { ANIXART_UA, attachAnixErrorMessages, enrichAnixError } from './anix-errors';
 import { isTvMode } from '../platform/tv';
 import { tvBridgeInvokeUrl } from '../constants/tv-bridge';
@@ -60,9 +61,11 @@ export function createBrowserAnixBridge() {
 
   function loadConfig(): NativeConfig {
     const raw = readJson<Partial<NativeConfig>>(CONFIG_KEY, {});
+    // Сохранённый прокси без ключа заведомо отвечает 403 — возвращаемся на прямой хост
+    const savedBase = raw.baseUrl && !(isProxyUrl(raw.baseUrl) && !proxyKey()) ? raw.baseUrl : DEFAULT_BASE_URL;
     return {
       token: raw.token ?? null,
-      baseUrl: raw.baseUrl || DEFAULT_BASE_URL,
+      baseUrl: savedBase,
       profileId: raw.profileId ?? null,
       profileLogin: raw.profileLogin ?? null,
       profileAvatar: raw.profileAvatar ?? null,
@@ -78,11 +81,19 @@ export function createBrowserAnixBridge() {
 
   function createClient({ baseUrl, token }: { baseUrl?: string; token?: string | null } = {}) {
     const cfg = loadConfig();
-    return attachAnixErrorMessages(attachLegacyEndpoints(new Anixart({
+    installProxyKeyFetch();
+    const client = attachLegacyEndpoints(new Anixart({
       baseUrl: baseUrl ?? cfg.baseUrl,
       token: token ?? cfg.token ?? undefined,
       userAgent: ANIXART_UA,
-    }) as any));
+    }) as any);
+    // Автопереключение между прямыми хостами и резервным прокси; рабочий адрес сохраняем без сброса клиента
+    attachApiFailover(client, (base) => {
+      try {
+        localStorage.setItem(CONFIG_KEY, JSON.stringify({ ...loadConfig(), baseUrl: base }));
+      } catch { /* ignore */ }
+    });
+    return attachAnixErrorMessages(client);
   }
 
   function getClient() {
@@ -199,8 +210,17 @@ export function createBrowserAnixBridge() {
     'anix:pingBaseUrl': async (_c, [baseUrl]) => {
       const url = String(baseUrl || DEFAULT_BASE_URL).replace(/\/$/, '');
       if (url.includes('.invalid')) return { ok: false, latencyMs: null };
-      const res = await fetch(`${url}/`);
-      return { ok: res.ok, status: res.status };
+      const started = performance.now();
+      try {
+        // Любой HTTP-ответ (даже 403/404 на корне) значит «хост достижим»; не отвечает — сеть/блокировка.
+        const res = await Promise.race([
+          fetch(`${url}/`, { method: 'GET', cache: 'no-store' }),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000)),
+        ]);
+        return { ok: res.status > 0 && res.status < 500, status: res.status, latencyMs: Math.round(performance.now() - started) };
+      } catch {
+        return { ok: false, latencyMs: null };
+      }
     },
     'anix:endpointGeo': async (_c, [baseUrl]) => {
       const { staticEndpointCountry } = await import('../utils/endpointCountry');

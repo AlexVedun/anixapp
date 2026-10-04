@@ -911,7 +911,7 @@
       title: watchState.title || '',
       sourceName: watchState.sourceName || '',
     }, { origin: 'system' });
-    if (videoEl && player.useVideo) {
+    if (videoEl && player.useVideo && needsWebAudio()) {
       // Всегда цепляем Web Audio (хотя бы passthrough), иначе mute/volume на <video> ломаются.
       void core.surround.setEqGains(player.eqGains).then(() =>
         core.surround.setEqLevel(player.eqLevel).then(() =>
@@ -2315,6 +2315,16 @@
 
   let volumeBeforeMute = 50;
 
+  /**
+   * Телефон: Web Audio (createMediaElementSource) на WebView с MSE даёт писк/тишину/рывки звука
+   * (частота AudioContext не совпадает с 44,1 кГц потока, маршрут рвётся при паузе). Без объёмного звука и эквалайзера
+   * играем напрямую через <video> — громкость и mute работают штатно.
+   */
+  function needsWebAudio(): boolean {
+    if (!document.documentElement.classList.contains('mobile-mode')) return true;
+    return player.surroundMode !== 'off' || player.eqLevel !== 0;
+  }
+
   function applyVolumeToMedia() {
     const muted = player.muted || player.volume <= 0;
     const linear = muted ? 0 : Math.max(0, Math.min(1, player.volume / 100));
@@ -2328,7 +2338,7 @@
   /** После жеста — уровень + починить маршрут, если source был оборван. */
   async function applyVolumeToMediaNow() {
     applyVolumeToMedia();
-    if (!videoEl || !player.useVideo) return;
+    if (!videoEl || !player.useVideo || !needsWebAudio()) return;
     try {
       if (!core.surround.attached) {
         await core.surround.attach(videoEl);
@@ -3033,7 +3043,7 @@
     }
 
     const paused = player.paused;
-    const blocked = inLobby || player.switching || player.reconnecting || lobbyWaitOverlay != null || autoNextFired;
+    const blocked = inLobby || player.switching || lobbyWaitOverlay != null || autoNextFired;
     if (paused || blocked || !player.useVideo || player.loadState !== 'ready') return;
 
     if (autoSkip) {
@@ -3043,30 +3053,11 @@
       const remainSec = range ? Math.max(0.5, range.end - t) : SKIP_AUTO_MS / 1000;
       const duration = Math.min(SKIP_AUTO_MS, Math.max(1500, remainSec * 1000));
       const elapsed0 = untrack(() => (skipCountdownPct / 100) * duration);
-      let startedAt = performance.now() - elapsed0;
-      let pausedAccum = 0;
-      let bufSince = 0;
+      const startedAt = performance.now() - elapsed0;
       let raf = 0;
 
       const tickFrame = (now: number) => {
-        if (autoNextFired || player.switching || player.reconnecting) return;
-        const el = videoEl;
-        const stuck = !!(
-          el
-          && !el.paused
-          && (el.seeking || el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
-        );
-        if (stuck) {
-          if (!bufSince) bufSince = now;
-          raf = requestAnimationFrame(tickFrame);
-          return;
-        }
-        if (bufSince) {
-          pausedAccum += now - bufSince;
-          bufSince = 0;
-          startedAt += pausedAccum;
-          pausedAccum = 0;
-        }
+        if (autoNextFired || player.switching) return;
         const elapsed = now - startedAt;
         skipCountdownPct = Math.min(100, (elapsed / duration) * 100);
         if (elapsed >= duration) {
@@ -3090,30 +3081,11 @@
       skipCountdownPct = 0;
       const duration = WATCH_AUTO_MS;
       const elapsed0 = untrack(() => (watchCountdownPct / 100) * duration);
-      let startedAt = performance.now() - elapsed0;
-      let pausedAccum = 0;
-      let bufSince = 0;
+      const startedAt = performance.now() - elapsed0;
       let raf = 0;
 
       const tickFrame = (now: number) => {
-        if (autoNextFired || player.switching || player.reconnecting) return;
-        const el = videoEl;
-        const stuck = !!(
-          el
-          && !el.paused
-          && (el.seeking || el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA)
-        );
-        if (stuck) {
-          if (!bufSince) bufSince = now;
-          raf = requestAnimationFrame(tickFrame);
-          return;
-        }
-        if (bufSince) {
-          pausedAccum += now - bufSince;
-          bufSince = 0;
-          startedAt += pausedAccum;
-          pausedAccum = 0;
-        }
+        if (autoNextFired || player.switching) return;
         const elapsed = now - startedAt;
         watchCountdownPct = Math.min(100, (elapsed / duration) * 100);
         if (elapsed >= duration) {
@@ -3773,7 +3745,7 @@
         void core.surround.setEqGains(player.eqGains).then(() =>
           core.surround.setEqLevel(player.eqLevel).then(() =>
             core.surround.setMode(player.surroundMode).then(() => {
-              if (videoEl && player.useVideo) {
+              if (videoEl && player.useVideo && needsWebAudio()) {
                 return core.surround.attach(videoEl).then(() => applyVolumeToMedia());
               }
             }),
