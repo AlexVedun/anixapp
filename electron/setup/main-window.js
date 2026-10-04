@@ -57,7 +57,9 @@ function createMainWindow(deps) {
     try {
       const target = new URL(url);
       const current = new URL(wc.getURL() || 'about:blank');
-      const sameApp = target.protocol === 'file:' ? current.protocol === 'file:' : target.origin === current.origin;
+      const sameApp = target.protocol === 'file:'
+        ? current.protocol === 'file:' && target.pathname === current.pathname // только сама страница приложения, не любой file://
+        : target.origin === current.origin;
       if (sameApp) return;
     } catch { /* блокируем */ }
     e.preventDefault();

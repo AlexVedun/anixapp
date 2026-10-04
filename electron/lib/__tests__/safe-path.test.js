@@ -32,3 +32,12 @@ describe('isTraversalSegment', () => {
     for (const s of ['Title', '.hidden', 'a..b', '2024']) assert.equal(isTraversalSegment(s), false, s);
   });
 });
+
+describe('isPathInside: имена, начинающиеся с «..»', () => {
+  const root = path.resolve('/data/Anixapp');
+  it('папка «..hidden» внутри корня — внутри; «..» — снаружи', () => {
+    assert.equal(isPathInside(root, path.join(root, '..hidden', 'a.mp4')), true);
+    assert.equal(isPathInside(root, path.join(root, '..')), false);
+    assert.equal(isPathInside(root, path.join(root, '..', 'x')), false);
+  });
+});

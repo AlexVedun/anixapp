@@ -14,7 +14,7 @@ function isPathInside(root, target) {
   const fold = (p) => (process.platform === 'win32' ? p.toLowerCase() : p);
   const rel = path.relative(fold(r), fold(t));
   if (rel === '') return true;
-  return !rel.startsWith('..') && !path.isAbsolute(rel);
+  return rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel);
 }
 
 /** Часть пути, которая не должна выбираться из ввода: ".", ".." и пустые. */
