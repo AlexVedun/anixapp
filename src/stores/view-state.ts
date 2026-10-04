@@ -141,6 +141,11 @@ export function registerActiveScrollKey(getter: () => string): () => void {
   };
 }
 
+/** Есть ли у текущего экрана зарегистрированный ключ кэша (иначе capture запишет scroll не туда). */
+export function hasActiveScrollKey(): boolean {
+  return activeScrollKeyGetter != null;
+}
+
 /** Сохранить scroll уходящего экрана (до сброса DOM) */
 export function captureActiveScroll(): void {
   const key = activeScrollKeyGetter?.() ?? buildViewStateKey();

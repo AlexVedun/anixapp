@@ -23,7 +23,7 @@
   import { settingsModalOpen, notificationsModalOpen, watchModalOpen, watchModalReleaseId, watchModalReleaseTitle, lobbyCurrentPlayback, isPlayerWindowOpen, lobbyWatchingPeerIds } from './stores/modals';
   import { sendPlayerViewActive } from './services/lobby-ws';
   import { getPath, getSearchParams } from './router';
-  import { captureActiveScroll, resetScrollAfterRouteChange } from './stores/view-state';
+  import { captureActiveScroll, hasActiveScrollKey, resetScrollAfterRouteChange } from './stores/view-state';
   import { getSidebarDefaultNavHref } from './prefs';
   import { initTabNavigation, recordTabNavigation } from './stores/tab-navigation';
   import { initTheme, applyThemeById } from './services/themes';
@@ -340,14 +340,19 @@
       const pathChanged = nextPath !== path;
       if (pathChanged) {
         window.dispatchEvent(new CustomEvent('anix:beforeNavigate', { detail: { to: nextPath } }));
-        captureActiveScroll();
+        // URL уже сменился на целевой: без ключа уходящего экрана capture записал бы его scroll
+        // (например 0 у страницы релиза) в кэш целевого списка и затёр сохранённую позицию.
+        if (hasActiveScrollKey()) captureActiveScroll();
       }
       path = nextPath;
       recordTabNavigation(path);
       currentPath.set(path);
       syncSearchParams();
       if (pathChanged) resetScrollAfterRouteChange();
-      window.dispatchEvent(new CustomEvent('anix:navigate', { detail: path }));
+      // «Назад/вперёд» (в т.ч. Mouse4): передаём путь вместе с query (?tab=…), иначе экраны со
+      // вкладками в URL (Закладки) принимают это за переход на корень и открывают вкладку по умолчанию.
+      const query = getSearchParams().toString();
+      window.dispatchEvent(new CustomEvent('anix:navigate', { detail: query ? `${path}?${query}` : path }));
     };
     const onAnixNavigate = (e: Event) => {
       const detail = (e as CustomEvent).detail;
