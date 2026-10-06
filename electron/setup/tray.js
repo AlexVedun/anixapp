@@ -2,6 +2,7 @@
 
 const { Tray, nativeImage, Menu, app } = require('electron');
 const state = require('../lib/app-state');
+const { createMainWindow } = require('./main-window');
 
 function createTray(deps) {
   const { getIconPath } = deps;
@@ -24,10 +25,13 @@ function createTray(deps) {
   state.tray.setToolTip('AnixApp');
 
   const showWindow = () => {
-    if (state.mainWindow) {
-      state.mainWindow.show();
-      state.mainWindow.focus();
+    // macOS: окно может быть закрыто при живом приложении — создаём заново
+    if (!state.mainWindow) {
+      createMainWindow(deps);
+      return;
     }
+    state.mainWindow.show();
+    state.mainWindow.focus();
   };
 
   state.tray.on('click', showWindow);

@@ -73,6 +73,7 @@ export interface DevBridgeStatus {
 declare global {
   interface Window {
     electron?: {
+      platform?: string;
       consumePendingDeepLink?: () => { type?: string; id?: number; url?: string; title?: string; referer?: string; pageUrl?: string; cookies?: string } | null;
       getAppVersion: () => Promise<string>;
       getVersions: () => Promise<{
