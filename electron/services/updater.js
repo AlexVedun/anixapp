@@ -42,7 +42,8 @@ function getUpdateAssetPatterns() {
     return patterns;
   }
   if (process.platform === 'darwin') {
-    return [/\.dmg(\?|$)/i, /\.pkg(\?|$)/i, /\.zip(\?|$)/i];
+    // Сборки раздельные по архитектуре: AnixApp-<version>-mac-arm64.dmg / -x64.dmg
+    return [new RegExp(`(${process.arch}|universal)\\.dmg(\\?|$)`, 'i')];
   }
   return [/\.exe(\?|$)/i];
 }
@@ -56,7 +57,7 @@ function getUpdateAssetLabel() {
     if (t === 'flatpak') return '.flatpak / .AppImage';
     return '.AppImage';
   }
-  if (process.platform === 'darwin') return '.dmg/.pkg';
+  if (process.platform === 'darwin') return `${process.arch}.dmg`;
   return '.exe';
 }
 
@@ -477,6 +478,19 @@ ipcMain.handle('app:installUpdate', async () => {
       const child = spawn(state.pendingInstallerPath, [], { detached: true, stdio: 'ignore', shell: false });
       child.unref();
       isQuitting = true;
+      app.quit();
+      return;
+    }
+
+    // ── macOS: открываем .dmg — пользователь перетаскивает AnixApp в «Программы» ──
+    if (process.platform === 'darwin') {
+      const err = await shell.openPath(state.pendingInstallerPath);
+      if (err) {
+        sendUpdateProgress({ state: 'error', errorMessage: `Не удалось открыть образ: ${err}` });
+        return;
+      }
+      // Запущенное приложение нельзя заменить в «Программах» — закрываемся
+      state.isQuitting = true;
       app.quit();
       return;
     }

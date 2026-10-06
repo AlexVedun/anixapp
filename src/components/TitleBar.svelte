@@ -4,6 +4,7 @@
   import { iconArrowLeft, iconArrowRight, iconRefreshCw, iconBell, iconCalendar, iconUser, iconSettings, iconDownload, iconChevronDown, iconPlus, iconX } from './icons';
   import { checkForUpdate, type UpdateInfo } from '../services/update-checker';
   import type { AppUpdateProgress } from '../types/electron';
+  import { isMac } from '../utils/platform';
   import { isAuthenticated, openLoginPrompt, applyAccountSessionChange } from '../stores/auth';
   import { goBack, goForward, refreshCurrentPage } from '../stores/navigation';
   import { notificationUnreadCount, refreshNotificationUnreadCount } from '../stores/notifications';
@@ -205,6 +206,7 @@
     if (installType === 'appimage') return 'Файл скачан — приложение заменится и перезапустится';
     if (installType === 'pacman')   return 'Откроется окно pkexec (ввод пароля root)';
     if (installType === 'flatpak')  return 'Запустится flatpak update';
+    if (isMac) return 'Откроется образ .dmg — перетащите AnixApp в «Программы»';
     return 'Откроется установщик пакета';
   }
 
