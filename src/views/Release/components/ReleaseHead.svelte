@@ -9,7 +9,13 @@
     iconChevronDown,
     iconBellPlus,
     iconBellRing,
+    iconMoreVertical,
   } from '../../../components/icons';
+  import { showToast } from '../../../stores/toast';
+  import { portal } from '../../../actions/portal';
+  import MobileDownloadFlow from '../../../components/MobileDownloadFlow.svelte';
+  import { downloadsAvailable } from '../../../native/anix-downloads';
+  import { iconDownload, iconShare } from '../../../components/icons';
   import TitleInfoTrigger from '../../../components/TitleInfoTrigger.svelte';
   import ReleaseMetaInfoIcon from './ReleaseMetaInfoIcon.svelte';
   import type { ReleaseMetaInfoRow } from '../_metaInfo';
@@ -17,6 +23,7 @@
   import type { ListStatusId } from '../_types';
   import { openImageLightbox, formatVoteCount } from '../_utils';
   import { toPosterDisplayUrl } from '../../../utils/posterUrl';
+  import { isMobileMode } from '../../../platform/mobile';
 
   interface Props {
     posterUrl:       string;
@@ -92,6 +99,27 @@
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
   });
+
+  let moreOpen = $state(false);
+  let downloadOpen = $state(false);
+  function currentReleaseId(): number {
+    return parseInt(/release\/(\d+)/.exec(window.location.pathname)?.[1] ?? '0', 10);
+  }
+
+  /** Телефон: «⋮» рядом с «Воспроизвести» — поделиться ссылкой на релиз. */
+  async function shareRelease() {
+    const id = /release\/(\d+)/.exec(window.location.pathname)?.[1];
+    if (!id) return;
+    const url = `https://anixart.app/release/${id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: titleRu || title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      showToast('Ссылка скопирована');
+    } catch { /* пользователь закрыл диалог */ }
+  }
 
   function scrollToComments() {
     document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -174,7 +202,7 @@
         <Select
           options={selectOptions}
           value={currentStatus ?? ''}
-          placeholder="Не в списке"
+          placeholder={isMobileMode() ? 'Не смотрю' : 'Не в списке'}
           onChange={onSetStatus}
         />
       {/if}
@@ -234,6 +262,11 @@
           {/if}
           <span class="release-page__btn-label">{playBtnText}</span>
         </button>
+        {#if isMobileMode()}
+          <button type="button" class="release-page__more" aria-label="Ещё" onclick={() => (moreOpen = true)}>
+            {@html iconMoreVertical(22)}
+          </button>
+        {/if}
       </div>
     </div>
 
@@ -298,6 +331,10 @@
 {/snippet}
 
 <div class="release-page__head" class:release-page__head--narrow={!isWide}>
+  {#if isMobileMode() && displayPosterUrl}
+    <!-- Телефон: размытая обложка за шапкой, как в референсе -->
+    <div class="m-release-bg" aria-hidden="true" style="background-image:url({displayPosterUrl})"></div>
+  {/if}
   <div class="release-page__head-top">
     <div class="release-page__head-intro">
       {#if !isWide}
@@ -330,3 +367,27 @@
     {@render bodyBlock()}
   {/if}
 </div>
+
+{#if moreOpen}
+  <div class="m-sheet-scrim" role="presentation" use:portal>
+    <button type="button" class="m-sheet-scrim__bg" aria-label="Закрыть" onclick={() => (moreOpen = false)}></button>
+    <div class="m-sheet-menu" role="menu">
+      {#if downloadsAvailable()}
+        <button type="button" role="menuitem" onclick={() => { moreOpen = false; downloadOpen = true; }}>
+          {@html iconDownload(22)}<span>Скачать серии…</span>
+        </button>
+      {/if}
+      <button type="button" role="menuitem" onclick={() => { moreOpen = false; void shareRelease(); }}>
+        {@html iconShare(22)}<span>Поделиться</span>
+      </button>
+    </div>
+  </div>
+{/if}
+
+{#if downloadOpen}
+  <MobileDownloadFlow
+    releaseId={currentReleaseId()}
+    releaseTitle={titleRu || title}
+    onClose={() => (downloadOpen = false)}
+  />
+{/if}

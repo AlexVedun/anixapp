@@ -49,6 +49,9 @@
   import Layout from './layout/Layout.svelte';
   import TvLayout from './layout/TvLayout.svelte';
   import { isTvMode } from './platform/tv';
+  import { isMobileMode } from './platform/mobile';
+  import MobileLayout from './layout/MobileLayout.svelte';
+  import MobileDownloads from './views/MobileDownloads.svelte';
   import Login from './views/Login.svelte';
   import Home from './views/Home.svelte';
   import Overview from './views/Overview.svelte';
@@ -1022,7 +1025,7 @@
     {:else if path === '/search'}
       <Search q={searchQ} tab={searchTab} {searchBy} />
     {:else if path === '/downloads'}
-      <Downloads />
+      {#if isMobileMode()}<MobileDownloads />{:else}<Downloads />{/if}
     {:else if path === '/uikit'}
       <Uikit />
     {:else if path === '/uikit-v2'}
@@ -1054,6 +1057,34 @@
 
 {:else if isWatchRoute && !isTvMode()}
   <WebPlayerShell />
+
+{:else if isMobileMode()}
+  <MobileLayout currentPath={path}>
+    {#key pageRefreshKey}
+      {@render appRoutes()}
+    {/key}
+  </MobileLayout>
+
+  {#if $notificationsModalOpen}
+    <NotificationsModal onClose={() => notificationsModalOpen.set(false)} />
+  {/if}
+  {#if $watchModalOpen}
+    <WatchModal
+      releaseId={$watchModalReleaseId}
+      releaseTitle={$watchModalReleaseTitle}
+      onClose={() => watchModalOpen.set(false)}
+    />
+  {/if}
+  <UiV2ExternalLinkConfirm />
+  {#if $loginPromptOpen}
+    <Login
+      overlay
+      allowGuest
+      onSuccess={() => void onLoginSuccess()}
+      onDismiss={dismissLoginPrompt}
+      onConnectionRetry={checkAndShow}
+    />
+  {/if}
 
 {:else}
   {#if isTvMode()}

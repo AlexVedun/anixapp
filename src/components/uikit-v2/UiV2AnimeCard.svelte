@@ -14,6 +14,7 @@
   import UiV2RoundButton from './UiV2RoundButton.svelte';
   import UiV2PopupMenu, { type UiV2PopupMenuItem } from './UiV2PopupMenu.svelte';
   import { showToast } from '../../stores/toast';
+  import { isMobileMode } from '../../platform/mobile';
   import {
     buildReleaseDefaultMenuItems,
     copyTextToClipboard,
@@ -308,6 +309,8 @@
 
   const horizontalMeta = $derived.by((): string => {
     if (historyMetaParts.length) return historyMetaParts.join(' · ');
+    // Мобильный список: коротко, как в референсе («19 эп • 4.9★»); год/страна/статус — на странице релиза.
+    if (isMobileMode()) return ep || status || '';
     return [
       ep,
       year != null && year !== '' ? String(year) : null,

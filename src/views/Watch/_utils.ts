@@ -185,6 +185,8 @@ export async function resolveEpisodeUrl(
   skip: SkipMarks | null;
   error?: string | null;
 }> {
+  // «Веб-плеер» (телефон): страница /watch?webplayer=1 показывает плеер источника как есть
+  if (typeof window !== 'undefined' && /[?&]webplayer=1/.test(window.location.search)) iframe = true;
   let url = episodeUrl.startsWith('http') ? episodeUrl : `https:${episodeUrl}`;
   url = stripKodikQueryParams(url);
   const host = (url.match(/https?:\/\/([^/]+)/) || [])[1] || '';

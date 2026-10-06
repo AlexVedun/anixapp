@@ -1,5 +1,6 @@
 // ── Theme system ──────────────────────────────────────────────────────────────
 
+import { isMobileMode } from '../platform/mobile';
 import { isTvMode } from '../platform/tv';
 
 export interface ThemeVars {
@@ -174,6 +175,8 @@ function isLightTheme(v: ThemeVars): boolean {
 }
 
 export function applyTheme(theme: Theme): void {
+  // Мобильный режим: фиксированная тёмная палитра из токенов .m-* (см. _mobile-tokens.scss), темы desktop не применяем.
+  if (isMobileMode()) return;
   // For 'auto', resolve the actual theme based on OS preference
   const effective = theme.id === 'auto' ? resolveAutoTheme() : theme;
 

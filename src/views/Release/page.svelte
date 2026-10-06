@@ -4,6 +4,7 @@
   import { navigate } from '../../stores/navigation';
   import { requireAuth, isAuthenticated } from '../../stores/auth';
   import { openWatchModal } from '../../stores/modals';
+  import { isMobileMode } from '../../platform/mobile';
   import { buildPosterUrl, buildScreenshotUrl, toPosterDisplayUrl } from '../../utils/posterUrl';
   import { setDiscordContext, refreshDiscordPresence } from '../../services/discord-presence';
   import { isTvMode } from '../../platform/tv';
@@ -300,7 +301,7 @@
 
   // ── Select options ────────────────────────────────────────────────────────
   const selectOptions = $derived([
-    { value: '', label: 'Не в списке' },
+    { value: '', label: isMobileMode() ? 'Не смотрю' : 'Не в списке' },
     ...LIST_STATUSES.map(s => ({ value: s.id, label: s.label })),
   ] as SelectOption[]);
 

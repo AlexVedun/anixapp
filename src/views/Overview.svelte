@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { navigate } from '../stores/navigation';
+  import { isMobileMode } from '../platform/mobile';
+  import { iconFolder, iconFlame, iconCalendar, iconSlidersHorizontal, iconShuffle } from '../components/icons';
   import OverviewSteamCarousel from '../components/overview/OverviewSteamCarousel.svelte';
   import OverviewSectionHeader from '../components/overview/OverviewSectionHeader.svelte';
   import OverviewReleaseCarousel from '../components/overview/OverviewReleaseCarousel.svelte';
@@ -208,6 +210,29 @@
     }
   }
 
+  const mobile = isMobileMode();
+  let randomBusy = false;
+  async function openRandom() {
+    if (!window.anixApi || randomBusy) return;
+    randomBusy = true;
+    try {
+      const data = (await window.anixApi.release.random(true)) as { release?: { id?: number } } | null;
+      if (data?.release?.id) navigate(`/release/${data.release.id}`);
+    } catch { /* ignore */ } finally { randomBusy = false; }
+  }
+  function openBanner(b: OverviewBanner) {
+    const m = /(\d+)/.exec(b.action || '');
+    if (m && b.type === 1) navigate(`/release/${m[1]}`);
+    else if (m) navigate(`/release/${m[1]}`);
+  }
+  const QUICK = [
+    { label: 'Популярное', icon: iconFlame, go: () => navigate('/overview/popular') },
+    { label: 'Расписание', icon: iconCalendar, go: () => navigate('/schedule') },
+    { label: 'Коллекции', icon: iconFolder, go: () => navigate('/collections'), dot: true },
+    { label: 'Фильтр', icon: iconSlidersHorizontal, go: () => navigate('/catalog') },
+    { label: 'Рандом', icon: iconShuffle, go: () => void openRandom() },
+  ];
+
   onMount(() => {
     unregisterScrollKey = registerActiveScrollKey(() => OVERVIEW_UI_KEY());
     window.addEventListener('anix:beforeNavigate', onBeforeNavigate);
@@ -233,6 +258,62 @@
   });
 </script>
 
+{#if mobile}
+<div class="view view-overview view-overview--mobile">
+  {#if loadState === 'loading'}
+    <div class="m-banner-track"><div class="m-banner"><div class="m-banner__img m-skeleton"></div></div></div>
+  {:else if loadState === 'error'}
+    <UiV2ContentRetryOverlay message={errorMsg} onRetry={() => void loadOverview(true)} />
+  {:else}
+    {#if banners.length > 0}
+      <div class="m-banner-track">
+        {#each banners as b (b.id)}
+          <button type="button" class="m-banner m-btn-reset" onclick={() => openBanner(b)}>
+            <div class="m-banner__img">{#if b.image}<img src={b.image} alt="" loading="lazy" />{/if}</div>
+            <p class="m-banner__title">{b.title}</p>
+            {#if b.description}<p class="m-banner__sub">{b.description}</p>{/if}
+          </button>
+        {/each}
+      </div>
+    {/if}
+
+    <div class="m-quick">
+      {#each QUICK as q (q.label)}
+        <button type="button" class="m-quick__item" onclick={q.go}>
+          {@html q.icon(24)}
+          <span>{q.label}</span>
+          {#if q.dot}<i class="m-quick__dot"></i>{/if}
+        </button>
+      {/each}
+    </div>
+
+    {#each [
+      { id: 'rec', title: 'Рекомендации', sub: 'На основе ваших оценок', items: recommendations },
+      { id: 'watch', title: 'Смотрят сейчас', sub: '', items: watching },
+      { id: 'disc', title: 'Обсуждают сегодня', sub: '', items: discussing },
+    ] as sec (sec.id)}
+      {#if sec.items.length > 0}
+        <div class="m-section-head">
+          <div><h2>{sec.title}</h2>{#if sec.sub}<p>{sec.sub}</p>{/if}</div>
+          <button type="button" onclick={() => navigate('/catalog')}>Показать все</button>
+        </div>
+        <div class="m-hscroll m-hscroll--posters">
+          {#each sec.items as r (r.id)}
+            <button type="button" class="m-poster-tile m-btn-reset" onclick={() => navigate(`/release/${r.id}`)}>
+              <span class="m-poster">{#if r.poster}<img src={r.poster} alt="" loading="lazy" />{/if}</span>
+              <span class="m-poster-tile__title">{r.titleRu || r.titleEn}</span>
+            </button>
+          {/each}
+        </div>
+      {/if}
+    {/each}
+
+    {#if recommendations.length === 0 && watching.length === 0 && discussing.length === 0}
+      <div class="overview-page__empty">Пока нечего показать в обзоре</div>
+    {/if}
+  {/if}
+</div>
+{:else}
 <div class="view view-overview">
   <div class="overview-page">
     {#if loadState === 'loading'}
@@ -310,3 +391,4 @@
     {/if}
   </div>
 </div>
+{/if}

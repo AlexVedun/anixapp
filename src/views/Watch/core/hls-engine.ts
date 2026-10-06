@@ -226,6 +226,9 @@ function bindHlsHandlers(hls: Hls, video: HTMLVideoElement, handlers: SwapMediaH
 
 function preferNativeHls(): boolean {
   if (typeof window === 'undefined') return false;
+  // Телефон (Capacitor): нативный MediaPlayer WebView не принимает плейлисты CDN (text/plain, относительные
+  // сегменты) — играем через hls.js (MSE). Проверка раньше Capacitor.isNativePlatform().
+  if (document.documentElement.classList.contains('mobile-mode')) return false;
   if ((window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) {
     return true;
   }
