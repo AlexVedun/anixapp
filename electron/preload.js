@@ -1,4 +1,23 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webFrame } = require('electron');
+
+// macOS: нативные кнопки окна слева — рендерер прячет свои и сдвигает тайтлбар (.platform-darwin).
+// Отступ задан в px экрана, поэтому делим на масштаб интерфейса.
+if (process.platform === 'darwin') {
+  const TRAFFIC_LIGHTS_INSET = 98;
+  const applyTrafficLightsInset = () => {
+    const root = document.documentElement;
+    if (!root) return;
+    root.classList.add('platform-darwin');
+    const zoom = webFrame.getZoomFactor() || 1;
+    root.style.setProperty('--traffic-lights-inset', `${Math.round(TRAFFIC_LIGHTS_INSET / zoom)}px`);
+  };
+  applyTrafficLightsInset();
+  window.addEventListener('DOMContentLoaded', applyTrafficLightsInset);
+  window.addEventListener('resize', applyTrafficLightsInset);
+  ipcRenderer.on('window:fullscreen', (_, isFullscreen) => {
+    document.documentElement?.classList.toggle('window-fullscreen', !!isFullscreen);
+  });
+}
 
 ipcRenderer.on('player:fullscreen', (_, isFullscreen) => {
   window.dispatchEvent(new CustomEvent('player-fullscreen', { detail: isFullscreen }));
@@ -155,6 +174,7 @@ ipcRenderer.on('anix:deepLink', (_, payload) => {
 });
 
 contextBridge.exposeInMainWorld('electron', {
+  platform: process.platform,
   consumePendingDeepLink: () => {
     const payload = pendingDeepLinkPayload;
     pendingDeepLinkPayload = null;

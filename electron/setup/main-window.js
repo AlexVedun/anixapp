@@ -6,6 +6,7 @@ const state = require('../lib/app-state');
 const logger = require('../logger');
 const { flushPendingDeepLink } = require('../lib/deep-link');
 const { getDevServerOrigin } = require('../lib/dev-server');
+const { macTitleBarOptions, setupMacWindow } = require('../lib/mac-window');
 
 function createMainWindow(deps) {
   const { isDev, getIconPath, applyUiZoom, config, electronDir } = deps;
@@ -19,6 +20,7 @@ function createMainWindow(deps) {
     minHeight: isTv ? 720 : 600,
     frame: false,
     titleBarStyle: 'hidden',
+    ...macTitleBarOptions(),
     backgroundColor: '#0d0d0d',
     webPreferences: {
       preload: path.join(electronDir, 'preload.js'),
@@ -32,6 +34,7 @@ function createMainWindow(deps) {
   };
   if (iconPath) winOpts.icon = iconPath;
   state.mainWindow = new BrowserWindow(winOpts);
+  setupMacWindow(state.mainWindow);
   logger.info('main', 'window created');
 
   if (isDev) {
