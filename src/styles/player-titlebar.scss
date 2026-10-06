@@ -189,3 +189,15 @@ body.player-pip .player-titlebar__btn--pin {
     transform: translate(-50%, -50%) rotate(-45deg);
   }
 }
+
+// macOS: нативные кнопки окна слева — оставляем только «поверх всех окон».
+.platform-darwin {
+  .player-titlebar__btn--min,
+  .player-titlebar__btn--close {
+    display: none;
+  }
+
+  &:not(.window-fullscreen) .player-titlebar__drag {
+    padding-left: var(--traffic-lights-inset, 98px);
+  }
+}

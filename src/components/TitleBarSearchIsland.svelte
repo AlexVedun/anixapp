@@ -3,6 +3,7 @@
   import { fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { portal } from '../actions/portal';
+  import { shortcutLabel } from '../utils/platform';
   import { iconSearch, iconX, iconArrowRight, iconArrowLeft } from './icons';
   import TitleBarIslandCarousel from './TitleBarIslandCarousel.svelte';
   import CollectionCard, { type CollectionCardData } from './CollectionCard.svelte';
@@ -513,7 +514,7 @@
       {trimmed || 'Поиск тайтлов'}
     </span>
     {#if !trimmed}
-      <kbd class="titlebar-island__pill-kbd">Ctrl+K</kbd>
+      <kbd class="titlebar-island__pill-kbd">{shortcutLabel('Ctrl+K')}</kbd>
     {/if}
   </button>
 

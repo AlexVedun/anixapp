@@ -4,6 +4,7 @@ const path = require('path');
 const { BrowserWindow, ipcMain, shell, app } = require('electron');
 const state = require('../lib/app-state');
 const { getDevServerOrigin } = require('../lib/dev-server');
+const { macTitleBarOptions, setupMacWindow } = require('../lib/mac-window');
 
 const player = {
   createPlayerWindow: null,
@@ -30,6 +31,7 @@ function createPlayerWindow(params) {
     minHeight: 158,
     frame: false,
     titleBarStyle: 'hidden',
+    ...macTitleBarOptions(),
     title: 'AnixApp — Просмотр',
     backgroundColor: '#0d0d0d',
     show: false,
@@ -41,6 +43,7 @@ function createPlayerWindow(params) {
     },
     ...(iconPath && { icon: iconPath }),
   });
+  setupMacWindow(playerWindow);
   state.playerWindowRef = playerWindow;
   state.currentPlayerPlayback = {
     releaseId: String(params.releaseId ?? ''),

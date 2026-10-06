@@ -5,6 +5,7 @@ const fs = require('fs');
 const { BrowserWindow, ipcMain, app } = require('electron');
 const state = require('../lib/app-state');
 const { getDevServerOrigin } = require('../lib/dev-server');
+const { macTitleBarOptions, setupMacWindow } = require('../lib/mac-window');
 
 function register(deps) {
   const { isDev, applyUiZoom, electronDir, getIconPath, config } = deps;
@@ -24,6 +25,7 @@ function createThemeEditorWindow(themeId, isNew) {
     minHeight: 440,
     frame: false,
     titleBarStyle: 'hidden',
+    ...macTitleBarOptions(44),
     title: 'AnixApp — Редактор темы',
     show: false,
     resizable: true,
@@ -34,6 +36,7 @@ function createThemeEditorWindow(themeId, isNew) {
     },
     ...(iconPath && { icon: iconPath }),
   });
+  setupMacWindow(state.themeEditorWindow, 44);
   state.themeEditorWindow.on('closed', () => { state.themeEditorWindow = null; });
   state.themeEditorWindow.once('ready-to-show', () => {
     applyUiZoom(config.getUiZoom());
@@ -73,6 +76,7 @@ function createUpscaleToolWindow() {
     title: 'Предпросмотр моделей',
     backgroundColor: '#0e0e0e',
     frame: false,
+    ...macTitleBarOptions(),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(electronDir, 'preload.js'),
@@ -81,6 +85,7 @@ function createUpscaleToolWindow() {
     },
     ...(_toolIcon && { icon: _toolIcon }),
   });
+  setupMacWindow(state.upscaleToolWindow);
   state.upscaleToolWindow.on('closed', () => { state.upscaleToolWindow = null; });
   state.upscaleToolWindow.once('ready-to-show', () => {
     applyUiZoom(config.getUiZoom());
@@ -116,6 +121,7 @@ function createOverviewVideoEditorWindow() {
     title: 'AnixApp — Редактор видео (Обзор)',
     backgroundColor: '#0e0e0e',
     frame: false,
+    ...macTitleBarOptions(36),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(electronDir, 'preload.js'),
@@ -124,6 +130,7 @@ function createOverviewVideoEditorWindow() {
     },
     ...(_icon && { icon: _icon }),
   });
+  setupMacWindow(state.overviewEditorWindow, 36);
   state.overviewEditorWindow.on('closed', () => { state.overviewEditorWindow = null; });
   state.overviewEditorWindow.once('ready-to-show', () => {
     applyUiZoom(config.getUiZoom());
@@ -159,6 +166,7 @@ function createAdminPanelWindow() {
     minHeight: 640,
     frame: false,
     titleBarStyle: 'hidden',
+    ...macTitleBarOptions(),
     title: 'AnixApp — Панель управления',
     backgroundColor: '#0d0d0d',
     show: false,
@@ -172,6 +180,7 @@ function createAdminPanelWindow() {
     },
     ...(iconPath && { icon: iconPath }),
   });
+  setupMacWindow(state.adminPanelWindow);
   state.adminPanelWindow.on('closed', () => { state.adminPanelWindow = null; });
   state.adminPanelWindow.once('ready-to-show', () => {
     applyUiZoom(config.getUiZoom());
@@ -221,6 +230,7 @@ function createComposerWindow(payload) {
     minHeight: 560,
     frame: false,
     titleBarStyle: 'hidden',
+    ...macTitleBarOptions(),
     title: composerWindowTitle(state.composerPayload),
     backgroundColor: '#121212',
     show: false,
@@ -233,6 +243,7 @@ function createComposerWindow(payload) {
     },
     ...(iconPath && { icon: iconPath }),
   });
+  setupMacWindow(state.composerWindow);
   state.composerWindow.on('closed', () => {
     state.composerWindow = null;
     state.composerPayload = null;

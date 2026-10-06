@@ -1025,3 +1025,14 @@
   border: 1px solid currentColor;
   box-sizing: border-box;
 }
+
+// macOS: нативные кнопки окна слева — свои не показываем, тайтлбар сдвигаем под них.
+.platform-darwin {
+  .titlebar__controls {
+    display: none;
+  }
+
+  &:not(.window-fullscreen) .titlebar__drag {
+    padding-left: var(--traffic-lights-inset, 98px);
+  }
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { shortcutLabel } from '../../utils/platform';
   import { tick } from 'svelte';
   import UiV2Button from '../uikit-v2/UiV2Button.svelte';
   import UiV2Select, { type UiV2SelectOption } from '../uikit-v2/UiV2Select.svelte';
@@ -1789,7 +1790,7 @@
         <div class="feed-composer__ribbon" role="toolbar" aria-label="Форматирование записи">
           {#if editView === 'block'}
           <div class="feed-composer__ribbon-group">
-            <UiV2Tooltip text="Отменить · Ctrl+Z" placement="bottom">
+            <UiV2Tooltip text={`Отменить · ${shortcutLabel('Ctrl+Z')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1799,7 +1800,7 @@
                 onclick={undo}
               >{@html iconRotateCcw(16)}</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Повторить · Ctrl+Y" placement="bottom">
+            <UiV2Tooltip text={`Повторить · ${shortcutLabel('Ctrl+Y')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1812,7 +1813,7 @@
           </div>
 
           <div class="feed-composer__ribbon-group">
-            <UiV2Tooltip text="Текст · Ctrl+Shift+P" placement="bottom">
+            <UiV2Tooltip text={`Текст · ${shortcutLabel('Ctrl+Shift+P')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1823,7 +1824,7 @@
                 onclick={() => toggleBlock('paragraph')}
               >Aa</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Заголовок · Ctrl+Shift+H" placement="bottom">
+            <UiV2Tooltip text={`Заголовок · ${shortcutLabel('Ctrl+Shift+H')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1834,7 +1835,7 @@
                 onclick={() => toggleBlock('header')}
               >H</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Цитата · Ctrl+Shift+Q" placement="bottom">
+            <UiV2Tooltip text={`Цитата · ${shortcutLabel('Ctrl+Shift+Q')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1845,7 +1846,7 @@
                 onclick={() => toggleBlock('quote')}
               >{@html iconQuote(16)}</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Список · Ctrl+Shift+L" placement="bottom">
+            <UiV2Tooltip text={`Список · ${shortcutLabel('Ctrl+Shift+L')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1856,7 +1857,7 @@
                 onclick={() => toggleBlock('list')}
               >{@html iconList(16)}</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Нумерованный список · Ctrl+Shift+O" placement="bottom">
+            <UiV2Tooltip text={`Нумерованный список · ${shortcutLabel('Ctrl+Shift+O')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1867,7 +1868,7 @@
                 onclick={() => toggleBlock('ordered')}
               >{@html iconListOrdered(16)}</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Разделитель · Ctrl+Shift+D" placement="bottom">
+            <UiV2Tooltip text={`Разделитель · ${shortcutLabel('Ctrl+Shift+D')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1881,7 +1882,7 @@
           </div>
 
           <div class="feed-composer__ribbon-group">
-            <UiV2Tooltip text="Жирный · Ctrl+B" placement="bottom">
+            <UiV2Tooltip text={`Жирный · ${shortcutLabel('Ctrl+B')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1892,7 +1893,7 @@
                 onclick={() => applyInline('bold')}
               >{@html iconBold(16)}</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Курсив · Ctrl+I" placement="bottom">
+            <UiV2Tooltip text={`Курсив · ${shortcutLabel('Ctrl+I')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1903,7 +1904,7 @@
                 onclick={() => applyInline('italic')}
               >{@html iconItalic(16)}</button>
             </UiV2Tooltip>
-            <UiV2Tooltip text="Ссылка на текст · Ctrl+K" placement="bottom">
+            <UiV2Tooltip text={`Ссылка на текст · ${shortcutLabel('Ctrl+K')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -1915,7 +1916,7 @@
           </div>
 
           <div class="feed-composer__ribbon-group">
-            <UiV2Tooltip text="Изображение · Ctrl+Shift+M" placement="bottom">
+            <UiV2Tooltip text={`Изображение · ${shortcutLabel('Ctrl+Shift+M')}`} placement="bottom">
               <button
                 type="button"
                 class="feed-composer__tool"
@@ -2363,13 +2364,13 @@
         aria-label="Форматирование"
         style={`left:${inlineX}px; top:${inlineY}px`}
       >
-        <UiV2Tooltip text="Жирный · Ctrl+B" placement="top">
+        <UiV2Tooltip text={`Жирный · ${shortcutLabel('Ctrl+B')}`} placement="top">
           <button type="button" class="feed-composer__tool" class:is-active={inlineBold} aria-pressed={inlineBold} aria-label="Жирный" onmousedown={keepSelection} onclick={() => applyInline('bold')}>{@html iconBold(16)}</button>
         </UiV2Tooltip>
-        <UiV2Tooltip text="Курсив · Ctrl+I" placement="top">
+        <UiV2Tooltip text={`Курсив · ${shortcutLabel('Ctrl+I')}`} placement="top">
           <button type="button" class="feed-composer__tool" class:is-active={inlineItalic} aria-pressed={inlineItalic} aria-label="Курсив" onmousedown={keepSelection} onclick={() => applyInline('italic')}>{@html iconItalic(16)}</button>
         </UiV2Tooltip>
-        <UiV2Tooltip text="Ссылка · Ctrl+K" placement="top">
+        <UiV2Tooltip text={`Ссылка · ${shortcutLabel('Ctrl+K')}`} placement="top">
           <button type="button" class="feed-composer__tool" aria-label="Ссылка на текст" onmousedown={keepSelection} onclick={() => openLinkDialog('inline')}>{@html iconLink(16)}</button>
         </UiV2Tooltip>
       </div>
