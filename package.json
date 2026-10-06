@@ -11,6 +11,7 @@
         "build:icon": "node scripts/build-icon.js",
         "build": "vite build && yarn build:icon && node scripts/inject-oauth-env.js && electron-builder --publish=never",
         "build:win": "vite build && yarn build:icon && node scripts/inject-oauth-env.js && electron-builder --win --publish=never",
+        "build:mac": "vite build && yarn build:icon && node scripts/inject-oauth-env.js && electron-builder --mac --publish=never",
         "build:linux-deb": "node scripts/ensure-linux-host.mjs deb && vite build && yarn build:icon && node scripts/inject-oauth-env.js && electron-builder --linux deb --publish=never",
         "build:linux-arch": "node scripts/ensure-linux-host.mjs pacman && vite build && yarn build:icon && node scripts/inject-oauth-env.js && electron-builder --linux pacman --publish=never",
         "build:linux-appimage": "node scripts/ensure-linux-host.mjs AppImage && vite build && yarn build:icon && node scripts/inject-oauth-env.js && electron-builder --linux AppImage --publish=never",
@@ -120,6 +121,16 @@
         ],
         "win": {
             "icon": "public/logo/icon.ico"
+        },
+        "mac": {
+            "icon": "public/logo/icon-mac.png",
+            "category": "public.app-category.entertainment",
+            "target": [
+                "dmg"
+            ],
+            "identity": "-",
+            "hardenedRuntime": false,
+            "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
         },
         "linux": {
             "target": [

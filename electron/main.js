@@ -36,7 +36,7 @@ const logger = require('./logger');
 const state = require('./lib/app-state');
 const config = require('./lib/config-store');
 const { LIST_STATUS_TO_TYPE } = require('./lib/constants');
-const { getIconPath } = require('./lib/paths');
+const { getIconPath, getMacDockIconPath } = require('./lib/paths');
 const { applyUiZoom } = require('./lib/ui-zoom');
 const { createDiscordSettings } = require('./lib/discord-settings');
 const { createIpcHelpers } = require('./lib/ipc-helpers');
@@ -124,6 +124,12 @@ app.whenReady().then(() => {
   setupCdnProtocol(logger);
   setupLocalMediaProtocol(() => media.getDownloadDirectory?.() || '', logger);
   if (media.getDownloadDirectory) media.getDownloadDirectory();
+
+  // macOS: в dev док показывает иконку Electron; в сборке её задаёт electron-builder.
+  if (process.platform === 'darwin' && !app.isPackaged) {
+    const dockIcon = getMacDockIconPath();
+    if (dockIcon) app.dock?.setIcon(dockIcon);
+  }
 
   createMainWindow(deps);
   createTray(deps);
