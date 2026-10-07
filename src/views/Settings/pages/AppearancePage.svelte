@@ -14,6 +14,9 @@
   import ZoomScaleSlider from '../../../components/ZoomScaleSlider.svelte';
   import NavigationSettingsSection from '../../../components/settings/NavigationSettingsSection.svelte';
   import { DEFAULT_ZOOM, normalizeZoom, type ZoomLevel } from '../../../utils/zoom';
+  import { isMac } from '../../../utils/platform';
+
+  const modKey = isMac ? '⌘' : 'Ctrl';
 
   let cardLayout = $state<CardLayout>(getCardLayout());
   let activeThemeId = $state(getActiveThemeId());
@@ -132,7 +135,7 @@
   <section class="uiv2-settings__block">
     <h3 class="uiv2-settings__title">Уровень масштабирования</h3>
     <div class="uiv2-settings__group uiv2-settings__group--pad">
-      <p class="uiv2-settings__hint">Измените масштаб интерфейса. Также можно использовать Ctrl + / Ctrl −.</p>
+      <p class="uiv2-settings__hint">Измените масштаб интерфейса. Также можно использовать {modKey} + / {modKey} −.</p>
       {#if zoomLoaded}
         <ZoomScaleSlider value={uiZoom} onChange={saveZoom} />
       {:else}

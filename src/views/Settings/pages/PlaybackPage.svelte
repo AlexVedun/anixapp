@@ -32,6 +32,9 @@
     type SurroundMode,
   } from '../../Watch/core/surround-audio';
   import { initWebGpuAvailability } from '../../../utils/webgpu-availability.svelte';
+  import { isMac } from '../../../utils/platform';
+
+  const modKey = isMac ? '⌘' : 'Ctrl';
 
   type BindField = PlayerHotkeyBindField;
 
@@ -210,11 +213,11 @@
         </UiV2SettingsRow>
 
         <UiV2SettingsRow
-          title="Ctrl + колёсико — скорость"
+          title="{modKey} + колёсико — скорость"
           desc="Плавно ускорять и замедлять видео. Текущая скорость показывается на экране плеера."
         >
           <UiV2Toggle
-            label="Ctrl + колёсико — скорость"
+            label="{modKey} + колёсико — скорость"
             checked={hotkeys.ctrlWheelSpeed}
             onChange={(checked) => saveHotkeys({ ...hotkeys, ctrlWheelSpeed: checked })}
           />
@@ -222,7 +225,7 @@
 
         <UiV2SettingsRow
           title="Сбросить горячие клавиши"
-          desc="Вернуть ← / → / ↑ / ↓, пробел, F, P, 10 с и Ctrl + колёсико."
+          desc="Вернуть ← / → / ↑ / ↓, пробел, F, P, 10 с и {modKey} + колёсико."
         >
           <UiV2Button
             label="Сбросить"

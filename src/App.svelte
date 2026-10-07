@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
+  import { isMac } from './utils/platform';
   import {
     appScreen,
     syncAuthStatus,
@@ -789,7 +790,9 @@
     }
 
     function handleZoomKeydown(e: KeyboardEvent) {
-      if (!e.ctrlKey || !window.electron?.saveSettings) return;
+      // На macOS масштаб меняется по ⌘ + / ⌘ −, как принято в системе.
+      const mod = e.ctrlKey || (isMac && e.metaKey);
+      if (!mod || !window.electron?.saveSettings) return;
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
