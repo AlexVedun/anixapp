@@ -74,9 +74,14 @@ jobs:
           java-version: '21'
 
       - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
       - name: Install Android SDK components
-        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+        run: |
+          SDKMANAGER="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 
       - run: yarn install --frozen-lockfile
 
@@ -110,9 +115,14 @@ jobs:
           java-version: '21'
 
       - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
       - name: Install Android SDK components
-        run: sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+        run: |
+          SDKMANAGER="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 
       - run: yarn install --frozen-lockfile
 
