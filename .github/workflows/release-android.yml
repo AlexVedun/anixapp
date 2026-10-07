@@ -2,6 +2,10 @@
 #
 # Запускается автоматически после завершения workflow "Release" (сборка десктопа),
 # а также вручную. Отдельный workflow, чтобы APK собирались после релиза, а не в нём.
+#
+# Важно: APK собираются из ревизии, в которой лежит workflow (обычно main),
+# а тег из resolve-tag используется только для прикрепления файлов к релизу.
+# Так фиксы CI/скриптов не требуют пересоздания тега.
 name: Release Android APK
 
 on:
@@ -60,8 +64,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.resolve-tag.outputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
@@ -101,8 +103,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.resolve-tag.outputs.tag }}
 
       - uses: actions/setup-node@v4
         with:
