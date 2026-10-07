@@ -50,19 +50,19 @@
         "@sveltejs/vite-plugin-svelte": "^7.3.1",
         "concurrently": "^10.0.5",
         "cross-env": "^10.1.0",
-        "electron": "44.4.5",
+        "electron": "44.5.1",
         "electron-builder": "^26.15.3",
         "esbuild": "^0.28.2",
         "png2icons": "^2.0.1",
-        "sass": "^1.105.0",
+        "sass": "^1.105.1",
         "svelte": "^5.57.1",
         "svelte-check": "^4.7.6",
         "typescript": "^7.0.2",
-        "vite": "^8.3.1",
-        "wait-on": "^9.1.0"
+        "vite": "^8.3.2",
+        "wait-on": "^9.5.1"
     },
     "dependencies": {
-        "@capacitor/app": "^8.1.1",
+        "@capacitor/app": "^8.1.2",
         "@capacitor/core": "^8.5.2",
         "@xhayper/discord-rpc": "^1.5.1",
         "anime4k-webgpu": "^1.0.0",
@@ -74,7 +74,7 @@
         "hls.js": "^1.7.3",
         "html-to-image": "^1.11.13",
         "lottie-web": "^5.13.0",
-        "lucide": "^1.48.0"
+        "lucide": "^1.50.0"
     },
     "resolutions": {
         "axios": "^1.18.0",
