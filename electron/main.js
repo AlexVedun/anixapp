@@ -163,6 +163,9 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   logger.info('main', 'app before-quit');
+  // macOS: ⌘Q, «Завершить» в доке и выключение системы должны завершать приложение,
+  // а не прятать окно в трей.
+  if (process.platform === 'darwin') state.isQuitting = true;
   try { media.persistDownloads?.(); } catch (_) {}
   stopFetchAAppBridge();
   try { require('./lib/tv-lan-login').stop(); } catch (_) {}
