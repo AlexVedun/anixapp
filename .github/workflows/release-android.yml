@@ -126,8 +126,8 @@ jobs:
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           mkdir -p release
-          if [ -f release/AnixMobile-debug.apk ]; then
-            cp release/AnixMobile-debug.apk "release/AnixApp-Mobile-${VERSION}-debug.apk"
+          if [ -f release/AnixMobile-alpha-debug.apk ]; then
+            cp release/AnixMobile-alpha-debug.apk "release/AnixApp-Mobile-${VERSION}-alpha-debug.apk"
           fi
           ls -la release/
 

@@ -62,6 +62,6 @@ run(gradlew, ['assembleDebug'], androidDir);
 const apkSrc = path.join(androidDir, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 const outDir = path.join(root, 'release');
 mkdirSync(outDir, { recursive: true });
-const apkDest = path.join(outDir, 'AnixApp-TV-remote-debug.apk');
+const apkDest = path.join(outDir, 'AnixApp-TV-alpha-remote-debug.apk');
 copyFileSync(apkSrc, apkDest);
 console.log('✓ APK:', apkDest);

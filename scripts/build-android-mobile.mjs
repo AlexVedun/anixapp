@@ -70,8 +70,8 @@ if (!existsSync(apk)) {
 }
 const outDir = path.join(root, 'release');
 mkdirSync(outDir, { recursive: true });
-cpSync(apk, path.join(outDir, 'AnixMobile-debug.apk'));
-console.log('✓ release/AnixMobile-debug.apk');
+cpSync(apk, path.join(outDir, 'AnixMobile-alpha-debug.apk'));
+console.log('✓ release/AnixMobile-alpha-debug.apk');
 
 if (install) {
   const adb = path.join(sdkDir, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb');

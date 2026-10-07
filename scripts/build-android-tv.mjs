@@ -64,18 +64,18 @@ run(gradlew, ['assembleDebug'], androidDir);
 const apkSrc = path.join(androidDir, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 const outDir = path.join(root, 'release');
 mkdirSync(outDir, { recursive: true });
-const apkDest = path.join(outDir, 'AnixApp-TV-anime4k-debug.apk');
+const apkDest = path.join(outDir, 'AnixApp-TV-anime4k-alpha-debug.apk');
 if (!existsSync(apkSrc)) {
   console.error('APK not found:', apkSrc);
   process.exit(1);
 }
 copyFileSync(apkSrc, apkDest);
 const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
-const versioned = path.join(outDir, `AnixApp-TV-${pkg.version}-anime4k-debug.apk`);
+const versioned = path.join(outDir, `AnixApp-TV-${pkg.version}-alpha-anime4k-debug.apk`);
 copyFileSync(apkSrc, versioned);
-const legacy = path.join(outDir, 'AnixApp-TV-debug.apk');
+const legacy = path.join(outDir, 'AnixApp-TV-alpha-debug.apk');
 copyFileSync(apkSrc, legacy);
-const versionedLegacy = path.join(outDir, `AnixApp-TV-${pkg.version}-debug.apk`);
+const versionedLegacy = path.join(outDir, `AnixApp-TV-${pkg.version}-alpha-debug.apk`);
 copyFileSync(apkSrc, versionedLegacy);
 console.log('✓ APK (Anime4K bundled):', apkDest);
 console.log('✓ APK:', versioned);
