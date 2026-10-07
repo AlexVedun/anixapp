@@ -85,6 +85,11 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
 
+      - name: Set version from release tag
+        run: node scripts/set-version-from-tag.js
+        env:
+          RELEASE_TAG: ${{ needs.resolve-tag.outputs.tag }}
+
       - run: yarn install --frozen-lockfile
 
       - name: Build Android TV APK
@@ -123,6 +128,11 @@ jobs:
           SDKMANAGER="${ANDROID_HOME:-$ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" --install 'platforms;android-36' 'build-tools;36.0.0' 'platform-tools'
+
+      - name: Set version from release tag
+        run: node scripts/set-version-from-tag.js
+        env:
+          RELEASE_TAG: ${{ needs.resolve-tag.outputs.tag }}
 
       - run: yarn install --frozen-lockfile
 
