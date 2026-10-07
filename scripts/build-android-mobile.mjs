@@ -57,11 +57,11 @@ console.log('→ Capacitor sync (android-mobile)');
 run('npx', ['cap', 'sync', 'android']);
 
 console.log('→ Gradle assembleDebug');
-run(
-  path.join(androidDir, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew'),
-  ['assembleDebug', '--no-daemon', '--console=plain'],
-  androidDir,
-);
+const gradlew = process.platform === 'win32' ? 'gradlew.bat' : 'sh';
+const gradlewArgs = process.platform === 'win32'
+  ? ['assembleDebug', '--no-daemon', '--console=plain']
+  : ['./gradlew', 'assembleDebug', '--no-daemon', '--console=plain'];
+run(gradlew, gradlewArgs, androidDir);
 
 const apk = path.join(androidDir, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 if (!existsSync(apk)) {

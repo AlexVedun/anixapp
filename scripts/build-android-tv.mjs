@@ -58,8 +58,11 @@ console.log('→ Capacitor sync');
 npx(['cap', 'sync', 'android']);
 
 console.log('→ Gradle assembleDebug');
-const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
-run(gradlew, ['assembleDebug'], androidDir);
+const gradlew = process.platform === 'win32' ? 'gradlew.bat' : 'sh';
+const gradlewArgs = process.platform === 'win32'
+  ? ['assembleDebug']
+  : ['./gradlew', 'assembleDebug'];
+run(gradlew, gradlewArgs, androidDir);
 
 const apkSrc = path.join(androidDir, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 const outDir = path.join(root, 'release');
