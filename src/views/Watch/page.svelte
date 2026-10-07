@@ -2330,6 +2330,7 @@
         return;
       }
       fluo.setProgress(targetTime, { origin: 'user' });
+      sendToLobby('seek', targetTime);
       showAndSchedule();
     }
   }
