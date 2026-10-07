@@ -19,6 +19,9 @@ jobs:
           node-version: 22
           cache: yarn
 
+      - name: Set version from tag
+        run: node scripts/set-version-from-tag.js
+
       - run: yarn install --frozen-lockfile
 
       - run: yarn build:win
@@ -48,6 +51,9 @@ jobs:
           node-version: 22
           cache: yarn
 
+      - name: Set version from tag
+        run: node scripts/set-version-from-tag.js
+
       - run: yarn install --frozen-lockfile
 
       - run: yarn build:linux-deb
@@ -73,6 +79,9 @@ jobs:
         with:
           node-version: 22
           cache: yarn
+
+      - name: Set version from tag
+        run: node scripts/set-version-from-tag.js
 
       - run: yarn install --frozen-lockfile
 
@@ -102,6 +111,9 @@ jobs:
           pacman -Syu --noconfirm
           pacman -S --noconfirm base-devel nodejs npm git fakeroot libxcrypt-compat
           npm install -g yarn
+
+      - name: Set version from tag
+        run: node scripts/set-version-from-tag.js
 
       - name: Create non-root build user
         run: |
@@ -155,6 +167,9 @@ jobs:
         with:
           node-version: 22
           cache: yarn
+
+      - name: Set version from tag
+        run: node scripts/set-version-from-tag.js
 
       - run: yarn install --frozen-lockfile
 
