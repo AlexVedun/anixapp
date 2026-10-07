@@ -850,21 +850,30 @@
     if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
     player.overlayVisible = true;
   }
+  let idleTimerArmed = false;
   function scheduleHide() {
+    idleTimerArmed = false;
     if (chromeHideBlocked()) {
       if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
       player.overlayVisible = true;
       return;
     }
     if (idleTimer) clearTimeout(idleTimer);
+    idleTimerArmed = true;
     idleTimer = setTimeout(() => {
       idleTimer = null;
+      idleTimerArmed = false;
       if (chromeHideBlocked()) {
         player.overlayVisible = true;
         return;
       }
       player.overlayVisible = false;
     }, IDLE_MS);
+  }
+
+  function onPointerLeaveWindow() {
+    if (chromeHideBlocked()) return;
+    hideNow();
   }
   function hideNow() {
     if (chromeHideBlocked()) return;
@@ -894,6 +903,18 @@
     if (!leftBlock) return;
     if (!player.overlayVisible) return;
     scheduleHide();
+  });
+
+  $effect(() => {
+    const active = player.overlayVisible
+      && !player.paused
+      && player.loadState === 'ready'
+      && !player.switching
+      && !chromeHideBlocked();
+    if (!active) return;
+    untrack(() => {
+      if (!idleTimerArmed) scheduleHide();
+    });
   });
 
   function bindCoreEls() {
@@ -4370,6 +4391,8 @@
     window.addEventListener('pointermove', onPointerActivity, true);
     window.addEventListener('pointerdown', onPointerActivity, true);
     document.addEventListener('mouseenter', showAndSchedule, true);
+    document.addEventListener('mouseleave', onPointerLeaveWindow, true);
+    window.addEventListener('blur', onPointerLeaveWindow);
 
     return () => {
       videoListenersAbort?.abort();
@@ -4384,6 +4407,8 @@
       window.removeEventListener('pointermove', onPointerActivity, true);
       window.removeEventListener('pointerdown', onPointerActivity, true);
       document.removeEventListener('mouseenter', showAndSchedule, true);
+      document.removeEventListener('mouseleave', onPointerLeaveWindow, true);
+      window.removeEventListener('blur', onPointerLeaveWindow);
       stopUpscale();
       core.destroy();
       ro?.disconnect();
