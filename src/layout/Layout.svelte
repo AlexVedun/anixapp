@@ -399,6 +399,13 @@
     window.addEventListener('anix:profilePanelOpen', onProfilePanelOpen);
     window.addEventListener('anix:profilePanelClose', onProfilePanelClose);
 
+    // macOS: «Настройки…» из меню приложения — только открывает, повторное нажатие не закрывает
+    const onMenuOpenSettings = () => {
+      if (!$settingsModalOpen) openSettingsModal();
+    };
+    window.addEventListener('app:openSettings', onMenuOpenSettings);
+    window.dispatchEvent(new CustomEvent('app:menuReady'));
+
     bindSearchHotkeys();
     void restoreAdminSession();
 
@@ -437,6 +444,7 @@
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('app:openSettings', onMenuOpenSettings);
       window.removeEventListener('anix:profileUpdated', onProfileUpdated);
       window.removeEventListener('anix:profilePanelOpen', onProfilePanelOpen);
       window.removeEventListener('anix:profilePanelClose', onProfilePanelClose);

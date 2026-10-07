@@ -44,6 +44,7 @@ const { applyGpuFlags } = require('./setup/gpu-flags');
 const { setupSessionRequestHeaders } = require('./setup/session-headers');
 const { createMainWindow } = require('./setup/main-window');
 const { createTray } = require('./setup/tray');
+const { setupAppMenu } = require('./setup/app-menu');
 const { createAnixClient, getAnixart, resetAnixart } = require('./services/anix-client');
 const { createDevApiBridge } = require('./dev-api-bridge');
 const { registerAll } = require('./ipc');
@@ -131,6 +132,7 @@ app.whenReady().then(() => {
     if (dockIcon) app.dock?.setIcon(dockIcon);
   }
 
+  setupAppMenu(deps);
   createMainWindow(deps);
   createTray(deps);
   discord.initDiscordRpc();
@@ -161,6 +163,9 @@ app.whenReady().then(() => {
 
 app.on('before-quit', () => {
   logger.info('main', 'app before-quit');
+  // macOS: ⌘Q, «Завершить» в доке и выключение системы должны завершать приложение,
+  // а не прятать окно в трей.
+  if (process.platform === 'darwin') state.isQuitting = true;
   try { media.persistDownloads?.(); } catch (_) {}
   stopFetchAAppBridge();
   try { require('./lib/tv-lan-login').stop(); } catch (_) {}
@@ -175,5 +180,9 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createMainWindow(deps);
+  } else if (state.mainWindow && !state.mainWindow.isVisible()) {
+    // Окно спрятано в трей — клик по иконке в доке должен его вернуть.
+    state.mainWindow.show();
+    state.mainWindow.focus();
   }
 });
