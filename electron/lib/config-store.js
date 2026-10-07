@@ -29,8 +29,35 @@ function _readConfigFromDisk() {
   return {};
 }
 
+/**
+ * Разовая миграция Anime4K: у старых сборок апскейл по умолчанию был включён и на 4K.
+ * Сбрасываем на «выкл + 1080p» один раз. После этого ручной выбор пользователя сохраняется.
+ */
+const ANIME4K_DEFAULTS_MIGRATION = 2;
+
+function migrateAnime4kDefaults() {
+  const raw = _configCache ?? _readConfigFromDisk();
+  if (!raw || typeof raw !== 'object') return;
+  if (raw.anime4kDefaultsMigration >= ANIME4K_DEFAULTS_MIGRATION) return;
+  const next = {
+    ...raw,
+    upscaleEnabled: false,
+    upscaleType: 'off',
+    upscaleMode: 15,
+    upscaleTargetRes: '1080',
+    anime4kDefaultsMigration: ANIME4K_DEFAULTS_MIGRATION,
+  };
+  try {
+    fs.writeFileSync(getConfigPath(), JSON.stringify(next), 'utf8');
+    _configCache = next;
+  } catch (err) {
+    console.error('Failed to migrate anime4k defaults', err);
+  }
+}
+
 function primeConfigCache() {
   if (_configCache === null) _configCache = _readConfigFromDisk();
+  migrateAnime4kDefaults();
 }
 
 function getMinimizeToTray() {
