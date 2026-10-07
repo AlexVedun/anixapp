@@ -11,7 +11,7 @@
  * Скрипт определяет это и просит собрать через ASCII-диск:  subst P: "<папка с кириллицей>"  → P:\anixapp-mobile
  */
 import { spawnSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -70,8 +70,10 @@ if (!existsSync(apk)) {
 }
 const outDir = path.join(root, 'release');
 mkdirSync(outDir, { recursive: true });
-cpSync(apk, path.join(outDir, 'AnixMobile-alpha-debug.apk'));
-console.log('✓ release/AnixMobile-alpha-debug.apk');
+const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+const apkDest = path.join(outDir, `AnixApp-Mobile-${pkg.version}-alpha.apk`);
+cpSync(apk, apkDest);
+console.log('✓ APK (Android телефон):', apkDest);
 
 if (install) {
   const adb = path.join(sdkDir, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb');
