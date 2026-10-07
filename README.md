@@ -107,8 +107,8 @@
 | Windows | `.exe` |
 | Linux · бета | `.deb`, `.pkg.tar.zst`, AppImage |
 | macOS · бета | `.dmg` (Apple Silicon и Intel) |
-| Android · бета | APK |
-| Android TV · бета | APK |
+| Android · бета | `.apk` |
+| Android TV · бета | `.apk` |
 
 ### macOS: первый запуск
 
