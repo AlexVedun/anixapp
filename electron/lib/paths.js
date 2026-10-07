@@ -24,4 +24,10 @@ function getMacDockIconPath() {
   return fs.existsSync(icon) ? icon : null;
 }
 
-module.exports = { getIconPath, getMacDockIconPath };
+/** macOS: монохромный template-значок для строки меню (рядом лежит @2x). */
+function getMacTrayIconPath() {
+  const icon = path.join(__dirname, '..', '..', 'public', 'logo', 'trayTemplate.png');
+  return fs.existsSync(icon) ? icon : null;
+}
+
+module.exports = { getIconPath, getMacDockIconPath, getMacTrayIconPath };
