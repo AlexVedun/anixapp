@@ -718,11 +718,11 @@
     try {
       const merged: BadgeItem[] = [];
       let page = 0;
+      const seenIds = new Set<number>();
       let totalCount = 0;
-      let totalPages = 1;
       let profileBadge: Record<string, unknown> | null = null;
 
-      while (page < totalPages) {
+      while (page <= 50) {
         const res = resolveJacksonRefs(await api.getBadges(page)) as {
           content?: unknown[];
           profile?: { badge?: Record<string, unknown> };
@@ -730,31 +730,33 @@
           totalCount?: number;
           total_page_count?: number;
           totalPageCount?: number;
+          current_page?: number;
+          currentPage?: number;
         };
         const rows = Array.isArray(res?.content) ? res.content : [];
+        if (!rows.length) break;
+        const before = merged.length;
         for (const row of rows) {
           if (!row || typeof row !== 'object') continue;
           const mapped = mapBadgeRow(row as Record<string, unknown>);
-          if (mapped) merged.push(mapped);
+          if (mapped && !seenIds.has(mapped.id)) {
+            seenIds.add(mapped.id);
+            merged.push(mapped);
+          }
         }
+        if (merged.length === before) break;
 
-        totalCount = Number(
+        const nextCount = Number(
           (res as { total_count?: number; totalCount?: number }).total_count
-          ?? (res as { totalCount?: number }).totalCount
-          ?? totalCount,
+          ?? (res as { totalCount?: number }).totalCount,
         );
-        totalPages = Number(
-          (res as { total_page_count?: number; totalPageCount?: number }).total_page_count
-          ?? (res as { totalPageCount?: number }).totalPageCount
-          ?? (rows.length >= 25 ? page + 2 : page + 1),
-        );
+        if (Number.isFinite(nextCount) && nextCount > 0) totalCount = nextCount;
 
         const pb = res?.profile?.badge;
         if (pb && typeof pb === 'object') profileBadge = pb as Record<string, unknown>;
 
-        if (!rows.length) break;
+        if (totalCount > 0 && merged.length >= totalCount) break;
         page += 1;
-        if (rows.length < 25) break;
       }
 
       badges = await enrichLockedBadgePreviews(
