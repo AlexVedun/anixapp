@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import type { Snippet } from 'svelte';
-  import { navigate } from '../stores/navigation';
+  import { navigate, goBack, goForward, navigateSidebarTab } from '../stores/navigation';
   import { openAdminArea, restoreAdminSession, checkTeamMembership, isTeamMember } from '../stores/admin';
   import { toggleNotificationsModal, openSettingsModal, settingsModalOpen, settingsBossFightLock } from '../stores/modals';
   import { isAuthenticated, requireAuth } from '../stores/auth';
@@ -39,7 +39,8 @@
     getSidebarPinsPlacement,
     type SidebarNavRailEntry,
   } from '../prefs';
-  import type { SidebarPinsPlacement } from '../constants/sidebar-nav';
+  import { SIDEBAR_NAV_ITEMS, type SidebarPinsPlacement } from '../constants/sidebar-nav';
+  import { isMac } from '../utils/platform';
 
   interface Props {
     children?: Snippet;
@@ -404,6 +405,21 @@
       if (!$settingsModalOpen) openSettingsModal();
     };
     window.addEventListener('app:openSettings', onMenuOpenSettings);
+
+    // macOS: меню «Переход» — разделы те же, что в боковой панели
+    const onMenuNavigate = (e: Event) => {
+      const detail = (e as CustomEvent<{ action?: string; id?: string }>).detail;
+      if (detail?.action === 'back') return goBack();
+      if (detail?.action === 'forward') return goForward();
+      const item = SIDEBAR_NAV_ITEMS.find((i) => i.id === detail?.id);
+      if (!item) return;
+      if (item.href === '/bookmarks' && !requireAuth()) return;
+      navigateSidebarTab(item.href);
+    };
+    window.addEventListener('app:menuNavigate', onMenuNavigate);
+    if (isMac) {
+      window.electron?.setAppMenuNav?.(SIDEBAR_NAV_ITEMS.map(({ id, label }) => ({ id, label })));
+    }
     window.dispatchEvent(new CustomEvent('app:menuReady'));
 
     bindSearchHotkeys();
@@ -445,6 +461,7 @@
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('app:openSettings', onMenuOpenSettings);
+      window.removeEventListener('app:menuNavigate', onMenuNavigate);
       window.removeEventListener('anix:profileUpdated', onProfileUpdated);
       window.removeEventListener('anix:profilePanelOpen', onProfilePanelOpen);
       window.removeEventListener('anix:profilePanelClose', onProfilePanelClose);

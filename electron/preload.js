@@ -122,15 +122,29 @@ ipcRenderer.on('app:update-progress', (_, payload) => {
   window.dispatchEvent(new CustomEvent('app-update-progress', { detail: payload }));
 });
 
-// macOS: пункт «Настройки…» в меню приложения.
+// macOS: пункты «Настройки…» и «Переход» в меню приложения.
 // Событие может прийти раньше, чем смонтируется интерфейс, — тогда ждём сигнала app:menuReady.
 let menuListenerReady = false;
 let pendingOpenSettings = false;
+let pendingMenuNavigate = null;
 window.addEventListener('app:menuReady', () => {
   menuListenerReady = true;
-  if (!pendingOpenSettings) return;
-  pendingOpenSettings = false;
-  window.dispatchEvent(new CustomEvent('app:openSettings'));
+  if (pendingOpenSettings) {
+    pendingOpenSettings = false;
+    window.dispatchEvent(new CustomEvent('app:openSettings'));
+  }
+  if (pendingMenuNavigate) {
+    const detail = pendingMenuNavigate;
+    pendingMenuNavigate = null;
+    window.dispatchEvent(new CustomEvent('app:menuNavigate', { detail }));
+  }
+});
+ipcRenderer.on('app:menuNavigate', (_, payload) => {
+  if (!menuListenerReady) {
+    pendingMenuNavigate = payload ?? null;
+    return;
+  }
+  window.dispatchEvent(new CustomEvent('app:menuNavigate', { detail: payload }));
 });
 ipcRenderer.on('app:openSettings', () => {
   if (!menuListenerReady) {
@@ -198,6 +212,7 @@ contextBridge.exposeInMainWorld('electron', {
     pendingDeepLinkPayload = null;
     return payload;
   },
+  setAppMenuNav: (items) => ipcRenderer.send('app:setMenuNav', items),
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
   getVersions: () => ipcRenderer.invoke('app:getVersions'),
   getDeviceId: () => ipcRenderer.invoke('app:getDeviceId'),

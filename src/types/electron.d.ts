@@ -75,6 +75,8 @@ declare global {
     electron?: {
       platform?: string;
       consumePendingDeepLink?: () => { type?: string; id?: number; url?: string; title?: string; referer?: string; pageUrl?: string; cookies?: string } | null;
+      /** macOS: разделы для меню «Переход» в строке меню. */
+      setAppMenuNav?: (items: { id: string; label: string }[]) => void;
       getAppVersion: () => Promise<string>;
       getVersions: () => Promise<{
         app: string;
