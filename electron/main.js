@@ -44,6 +44,7 @@ const { applyGpuFlags } = require('./setup/gpu-flags');
 const { setupSessionRequestHeaders } = require('./setup/session-headers');
 const { createMainWindow } = require('./setup/main-window');
 const { createTray } = require('./setup/tray');
+const { setupAppMenu } = require('./setup/app-menu');
 const { createAnixClient, getAnixart, resetAnixart } = require('./services/anix-client');
 const { createDevApiBridge } = require('./dev-api-bridge');
 const { registerAll } = require('./ipc');
@@ -131,6 +132,7 @@ app.whenReady().then(() => {
     if (dockIcon) app.dock?.setIcon(dockIcon);
   }
 
+  setupAppMenu(deps);
   createMainWindow(deps);
   createTray(deps);
   discord.initDiscordRpc();

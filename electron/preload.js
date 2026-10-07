@@ -122,6 +122,24 @@ ipcRenderer.on('app:update-progress', (_, payload) => {
   window.dispatchEvent(new CustomEvent('app-update-progress', { detail: payload }));
 });
 
+// macOS: пункт «Настройки…» в меню приложения.
+// Событие может прийти раньше, чем смонтируется интерфейс, — тогда ждём сигнала app:menuReady.
+let menuListenerReady = false;
+let pendingOpenSettings = false;
+window.addEventListener('app:menuReady', () => {
+  menuListenerReady = true;
+  if (!pendingOpenSettings) return;
+  pendingOpenSettings = false;
+  window.dispatchEvent(new CustomEvent('app:openSettings'));
+});
+ipcRenderer.on('app:openSettings', () => {
+  if (!menuListenerReady) {
+    pendingOpenSettings = true;
+    return;
+  }
+  window.dispatchEvent(new CustomEvent('app:openSettings'));
+});
+
 ipcRenderer.on('anix:offline', (_, payload) => {
   window.dispatchEvent(new CustomEvent('anix:offline', { detail: payload }));
 });
