@@ -635,6 +635,7 @@ export async function startAnime4kUpscale(opts: {
   let stopped = false;
   let upscaleStopFn: (() => void) | null = null;
   let capturedDevice: GPUDevice | null = null;
+  let capturedContext: GPUCanvasContext | null = null;
   let latestRvfcId: number | null = null;
   const origRvfc = HTMLVideoElement.prototype.requestVideoFrameCallback.bind(video);
 
@@ -651,9 +652,14 @@ export async function startAnime4kUpscale(opts: {
       try { video.cancelVideoFrameCallback(latestRvfcId); } catch { /* ignore */ }
       latestRvfcId = null;
     }
-    // Не вызывать device.destroy(): в Chromium это ломает следующий
-    // getContext('webgpu') на том же canvas — Anime4K «залипает» или не стартует.
-    capturedDevice = null;
+    if (capturedContext) {
+      try { capturedContext.unconfigure(); } catch { /* ignore */ }
+      capturedContext = null;
+    }
+    if (capturedDevice) {
+      try { capturedDevice.destroy(); } catch { /* ignore */ }
+      capturedDevice = null;
+    }
     if (opts?.detachOutput === false) return;
     if (manageCanvasHidden) {
       canvas.hidden = true;
@@ -741,6 +747,7 @@ export async function startAnime4kUpscale(opts: {
       adapter.requestDevice = async (...dArgs: Parameters<GPUAdapter['requestDevice']>) => {
         const device = await origRD(...dArgs);
         capturedDevice = device;
+        capturedContext = canvas.getContext('webgpu') as GPUCanvasContext | null;
         wrapCopyQueue(device);
         return device;
       };
