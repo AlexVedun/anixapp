@@ -28,6 +28,7 @@
         "deploy:tv": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-tv-to-server.ps1",
         "release:tv-prod": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-tv-to-server.ps1 && cross-env SKIP_TV_WEB_BUILD=1 node scripts/build-android-tv-prod.mjs",
         "build:android-tv": "node scripts/build-android-tv.mjs",
+        "build:android-mobile": "node scripts/build-android-mobile.mjs",
         "build:android-tv-anime4k": "node scripts/build-android-tv.mjs",
         "build:android-tv-live": "node scripts/build-android-tv-live.mjs",
         "build:android-tv-prod": "node scripts/build-android-tv-prod.mjs",
