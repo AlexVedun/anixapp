@@ -19,10 +19,10 @@
 <p align="center">
   <a href="https://github.com/Maks1mio/anixapp/stargazers"><img src="https://img.shields.io/github/stars/Maks1mio/anixapp?style=flat&color=ff6b9d" alt="Stars" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Noncommercial-6ea8fe?style=flat" alt="Noncommercial license" /></a>
-  <img src="https://img.shields.io/badge/version-0.1.55-informational?style=flat" alt="Version" />
-  <img src="https://img.shields.io/badge/Electron-43-47848f?style=flat" alt="Electron" />
+  <img src="https://img.shields.io/badge/version-0.1.59-informational?style=flat" alt="Version" />
+  <img src="https://img.shields.io/badge/Electron-44-47848f?style=flat" alt="Electron" />
   <img src="https://img.shields.io/badge/Svelte-5-ff3e00?style=flat" alt="Svelte" />
-  <img src="https://img.shields.io/badge/Android_TV-supported-3ddc84?style=flat&logo=android&logoColor=white" alt="Android TV" />
+  <img src="https://img.shields.io/badge/platforms-Windows_·_Linux_·_macOS_·_Android_·_Android_TV-3ddc84?style=flat" alt="Platforms" />
 </p>
 
 > [!WARNING]
@@ -61,8 +61,8 @@
 ### Anime4K
 
 - Апскейл в реальном времени через **WebGPU**
-- 20 режимов: пресеты Mode A/B/C и комбинации
-- Проверка GPU перед включением
+- 20 пресетов (Mode A/B/C и комбинации) + 18 цепочек в стиле AnixPlayer — тип (sharp / balance / clean и усиленные) × интенсивность (easy / optimal / max)
+- Целевое разрешение буфера и проверка GPU перед включением
 
 ### Discord Rich Presence · бета
 
@@ -87,13 +87,14 @@
 
 | Слой | Технология |
 | --- | --- |
-| Десктоп | Electron 43 |
+| Десктоп | Electron 44 |
 | UI | Svelte 5 + TypeScript |
 | Сборка | Vite 8 |
 | Стили | SCSS |
 | Видео | hls.js |
 | Апскейл | anime4k-webgpu |
 | API | Anixart API |
+| Android | Capacitor 8 |
 | Discord | @xhayper/discord-rpc |
 | Значки | lottie-web |
 
@@ -106,6 +107,7 @@
 | Windows | `.exe` |
 | Linux · бета | `.deb`, `.pkg.tar.zst`, AppImage |
 | macOS · бета | `.dmg` (Apple Silicon и Intel) |
+| Android · бета | APK |
 | Android TV · бета | APK |
 
 ### macOS: первый запуск
